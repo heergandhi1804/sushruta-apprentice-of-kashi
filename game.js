@@ -103,6 +103,12 @@ window.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
   }
   showScreen('screen-prologue');
+
+  // Track mouse coordinates for dynamic background glow
+  window.addEventListener('mousemove', (e) => {
+    document.body.style.setProperty('--mouse-x', `${e.clientX}px`);
+    document.body.style.setProperty('--mouse-y', `${e.clientY}px`);
+  });
 });
 
 function showScreen(screenId) {
@@ -243,6 +249,19 @@ function unlockBadge(badgeKey, elementId) {
 function restartSimulation() {
   Sound.chime();
   window.location.reload();
+}
+
+function updatePathway(badge, progressWidth) {
+  const badgeEl = document.getElementById('current-pathway-badge');
+  if (badgeEl) badgeEl.textContent = badge;
+  const progressEl = document.getElementById('pathway-progress');
+  if (progressEl) progressEl.style.width = progressWidth;
+}
+
+function goHome() {
+  Sound.click();
+  showScreen('screen-courtyard');
+  updateCourtyardProgress();
 }
 
 // ------------------------------------------
@@ -1110,15 +1129,13 @@ function advanceFromHealing() {
     showScreen('screen-courtyard');
 
     document.getElementById('courtyard-progress-text').textContent = "Level 3: Master's Challenge";
-    document.getElementById('current-pathway-badge').textContent = "Investigator";
-    document.getElementById('pathway-progress').style.width = "70%";
+    updatePathway("Investigator", "70%");
 
     setupLevel3Scenarios();
   } else {
     // Advance to Graduation badge screen
     showScreen('screen-graduation');
-    document.getElementById('current-pathway-badge').textContent = "Sushruta's Apprentice";
-    document.getElementById('pathway-progress').style.width = "100%";
+    updatePathway("Sushruta's Apprentice", "100%");
     unlockBadge('apprentice', 'badge-stk-apprentice');
   }
 }
@@ -1162,8 +1179,7 @@ function setupLevel3Scenarios() {
   btn.onclick = () => {
     Sound.success();
     showScreen('screen-graduation');
-    document.getElementById('current-pathway-badge').textContent = "Sushruta's Apprentice";
-    document.getElementById('pathway-progress').style.width = "100%";
+    updatePathway("Sushruta's Apprentice", "100%");
     unlockBadge('apprentice', 'badge-stk-apprentice');
   };
 }

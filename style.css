@@ -41,7 +41,8 @@
 
 body {
   font-family: var(--font-body);
-  background: radial-gradient(circle at center, #ffffff 0%, #f7f6f0 100%);
+  background-color: #faf9f5;
+  background-image: radial-gradient(circle 450px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(217, 70, 239, 0.15) 0%, rgba(13, 148, 136, 0.06) 50%, transparent 100%);
   color: var(--color-dark-slate);
   height: 100vh;
   display: flex;
