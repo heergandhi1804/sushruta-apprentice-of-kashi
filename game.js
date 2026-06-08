@@ -286,7 +286,7 @@ function initGourdLab() {
   GourdLab.squashY = 0;
   GourdLab.bendAngle = 0;
   
-  document.getElementById('gourd-mentor-tip').textContent = "Observe rind thickness first.";
+  document.getElementById('gourd-mentor-tip').textContent = "Observe item thickness first.";
   drawGourdScene(ctx, canvas);
 
   canvas.onmousedown = (e) => {
@@ -304,8 +304,8 @@ function initGourdLab() {
     GourdLab.dragPoints.push({ x, y });
 
     // Gourd squash / wobble animation
-    const midY = canvas.height * 0.45;
-    if (y > midY - 20 && y < midY + 10) {
+    const midY = canvas.height * 0.55;
+    if (y > midY - 25 && y < midY + 25) {
       GourdLab.squashY = Math.min(25, GourdLab.squashY + 1.2);
     }
     drawGourdScene(ctx, canvas);
@@ -350,7 +350,7 @@ function evaluateGourdPuncture() {
 
   if (mat === 'soft') {
     if (ndl === 'curved') { word = "SMOOTH!"; tip = "Curved slides through soft skin."; Sound.success(); }
-    else if (ndl === 'straight') { word = "POP!"; tip = "Straight needles pop soft rinds quickly."; Sound.pierce(); }
+    else if (ndl === 'straight') { word = "POP!"; tip = "Straight needles pop soft items quickly."; Sound.pierce(); }
     else { word = "TEAR!"; tip = "Triangular tips cut soft tissue too easily."; Sound.bump(); }
   } else if (mat === 'thick') {
     if (ndl === 'curved') { word = "STUCK!"; tip = "Curved needles struggle with thickness."; Sound.bump(); GourdLab.squashY = 15; }

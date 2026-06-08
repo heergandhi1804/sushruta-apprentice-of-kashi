@@ -23,6 +23,36 @@ function drawArrow(ctx, fromx, fromy, tox, toy) {
 // ------------------------------------------
 // YARD 1: GOURD POP
 // ------------------------------------------
+
+// Helper to check if a point (x, y) is inside the realistic vegetable body
+function isInsideGourd(x, y, canvas) {
+  const cx = canvas.width / 2;
+  const cy = canvas.height * 0.55;
+  const w = canvas.width * 0.7;
+  const h = 75; // height of gourd body
+
+  if (GourdLab.material === 'melon') {
+    // Check if inside melon crescent (semi-circle on flat line cy-30)
+    const dist = Math.hypot(x - cx, y - (cy - 30));
+    return dist >= 0 && dist <= 100 && y >= cy - 30;
+  } else {
+    // Check if inside bottle gourd body
+    const startX = cx - w/2;
+    const endX = cx + w/2;
+    if (x < startX || x > endX) return false;
+
+    // Gourd upper/lower profile height approximation
+    const pct = (x - startX) / w;
+    let localH = 22;
+    if (pct > 0.4) {
+      // Bulbous body
+      const bulbPct = (pct - 0.4) / 0.6; // 0 to 1
+      localH = 22 + Math.sin(bulbPct * Math.PI) * (h - 22);
+    }
+    return y >= cy - localH && y <= cy + localH;
+  }
+}
+
 function drawGourdScene(ctx, canvas) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -39,69 +69,160 @@ function drawGourdScene(ctx, canvas) {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
   }
 
-  const midY = canvas.height * 0.45;
+  const cx = canvas.width / 2;
+  const cy = canvas.height * 0.55;
+  const w = canvas.width * 0.7; // width of gourd
+  const h = 75; // height of gourd body
   const squash = GourdLab.squashY;
 
-  // Draw Gourd body
-  ctx.fillStyle = GourdLab.material === 'melon' ? '#fecdd3' : (GourdLab.material === 'thick' ? '#fef3c7' : '#ffedd5');
-  ctx.beginPath();
-  ctx.moveTo(0, midY + squash);
+  ctx.save();
+  
   if (GourdLab.material === 'melon') {
-    ctx.bezierCurveTo(canvas.width / 4, midY - 60 + squash, 3 * canvas.width / 4, midY - 60 + squash, canvas.width, midY + squash);
-  } else {
-    ctx.lineTo(canvas.width, midY + squash);
-  }
-  ctx.lineTo(canvas.width, canvas.height);
-  ctx.lineTo(0, canvas.height);
-  ctx.closePath();
-  ctx.fill();
-
-  // Draw Gourd rind/skin line
-  ctx.lineWidth = 8;
-  ctx.strokeStyle = GourdLab.material === 'melon' ? '#0d9488' : (GourdLab.material === 'thick' ? '#d97706' : '#ea580c');
-  ctx.beginPath();
-  ctx.moveTo(0, midY + squash);
-  if (GourdLab.material === 'melon') {
-    ctx.bezierCurveTo(canvas.width / 4, midY - 60 + squash, 3 * canvas.width / 4, midY - 60 + squash, canvas.width, midY + squash);
-  } else {
-    ctx.lineTo(canvas.width, midY + squash);
-  }
-  ctx.stroke();
-
-  // Draw seeds for Melon
-  if (GourdLab.material === 'melon') {
-    ctx.fillStyle = '#44403c';
-    const seedPoints = [
-      {x: 80, y: midY + 40}, {x: 180, y: midY + 25}, {x: 280, y: midY + 45}, 
-      {x: 380, y: midY + 30}, {x: 480, y: midY + 50}
-    ];
-    seedPoints.forEach(p => {
-      if (p.x < canvas.width) {
-        ctx.beginPath();
-        ctx.ellipse(p.x, p.y + squash, 3, 6, Math.PI / 6, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-    });
-  }
-
-  // Draw drag path
-  if (GourdLab.dragPoints.length > 1) {
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#78716c';
-    ctx.setLineDash([4, 4]);
+    // Draw realistic sliced melon crescent
+    // Draw outer green rind
+    ctx.fillStyle = '#0f766e'; // dark teal-green rind
     ctx.beginPath();
-    ctx.moveTo(GourdLab.dragPoints[0].x, GourdLab.dragPoints[0].y);
-    for (let i = 1; i < GourdLab.dragPoints.length; i++) {
-      ctx.lineTo(GourdLab.dragPoints[i].x, GourdLab.dragPoints[i].y);
+    ctx.arc(cx, cy - 30 + squash, 100, 0, Math.PI);
+    ctx.lineTo(cx - 100, cy - 30 + squash);
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw inner light rind layer
+    ctx.fillStyle = '#ccfbf1';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 30 + squash, 92, 0, Math.PI);
+    ctx.lineTo(cx - 92, cy - 30 + squash);
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw melon flesh
+    ctx.fillStyle = '#fda4af';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 30 + squash, 84, 0, Math.PI);
+    ctx.lineTo(cx - 84, cy - 30 + squash);
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw flat top slice face
+    ctx.fillStyle = '#fecdd3';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 30 + squash, 72, 0, Math.PI);
+    ctx.lineTo(cx - 72, cy - 30 + squash);
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw melon seeds
+    ctx.fillStyle = '#451a03'; // brown seeds
+    for (let angle = 0.2; angle < Math.PI - 0.2; angle += 0.4) {
+      const sx = cx + 55 * Math.cos(angle);
+      const sy = (cy - 30 + squash) + 55 * Math.sin(angle);
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, 3, 5, angle, 0, 2*Math.PI);
+      ctx.fill();
     }
+  } else {
+    // Draw realistic bottle gourd horizontally
+    const startX = cx - w/2;
+    const endX = cx + w/2;
+
+    // Create a 3D cylindrical lighting gradient
+    const grad = ctx.createLinearGradient(0, cy - h + squash, 0, cy + h + squash);
+    if (GourdLab.material === 'thick') {
+      // Thick Gourd: Darker green, tougher skin
+      grad.addColorStop(0, '#166534');
+      grad.addColorStop(0.3, '#22c55e');
+      grad.addColorStop(0.5, '#4ade80');
+      grad.addColorStop(0.8, '#166534');
+      grad.addColorStop(1, '#14532d');
+    } else {
+      // Soft Gourd: Light lime-green, soft skin
+      grad.addColorStop(0, '#3f6212');
+      grad.addColorStop(0.2, '#84cc16');
+      grad.addColorStop(0.5, '#bef264');
+      grad.addColorStop(0.8, '#65a30d');
+      grad.addColorStop(1, '#3f6212');
+    }
+
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = GourdLab.material === 'thick' ? '#14532d' : '#3f6212';
+    ctx.lineWidth = 3.5;
+
+    ctx.beginPath();
+    ctx.moveTo(startX, cy - 15 + squash);
+    ctx.quadraticCurveTo(startX + w*0.3, cy - 20 + squash, startX + w*0.4, cy - 25 + squash);
+    ctx.bezierCurveTo(startX + w*0.6, cy - h*0.8 + squash, startX + w*0.95, cy - h*0.8 + squash, endX, cy + squash);
+    ctx.bezierCurveTo(startX + w*0.95, cy + h*0.8 + squash, startX + w*0.6, cy + h*0.8 + squash, startX + w*0.4, cy + 25 + squash);
+    ctx.quadraticCurveTo(startX + w*0.3, cy + 20 + squash, startX, cy + 15 + squash);
+    ctx.closePath();
+    ctx.fill();
     ctx.stroke();
+
+    // Draw stem at the left neck tip
+    ctx.strokeStyle = '#78350f'; // brown stem
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(startX, cy + squash);
+    ctx.quadraticCurveTo(startX - 25, cy - 10 + squash, startX - 35, cy - 5 + squash);
+    ctx.stroke();
+
+    // Draw small dried flower node on the right body end
+    ctx.fillStyle = '#451a03';
+    ctx.beginPath();
+    ctx.arc(endX, cy + squash, 4, 0, 2*Math.PI);
+    ctx.fill();
+  }
+
+  ctx.restore();
+
+  // Draw drag path and needle
+  if (GourdLab.dragPoints.length > 1) {
+    ctx.lineWidth = 3.5;
+    
+    // Draw segment by segment to mix needle and rind visually (solid thread inside, dashed outside)
+    for (let i = 1; i < GourdLab.dragPoints.length; i++) {
+      const p1 = GourdLab.dragPoints[i - 1];
+      const p2 = GourdLab.dragPoints[i];
+      
+      // Check if both ends are inside the vegetable skin
+      const inside1 = isInsideGourd(p1.x, p1.y, canvas);
+      const inside2 = isInsideGourd(p2.x, p2.y, canvas);
+      
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      
+      if (inside1 && inside2) {
+        // Inside flesh: Draw solid bright orange suture thread
+        ctx.strokeStyle = '#ea580c';
+        ctx.setLineDash([]);
+        ctx.stroke();
+      } else if (!inside1 && !inside2) {
+        // In the air: Draw standard dashed guideline thread
+        ctx.strokeStyle = '#78716c';
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+      } else {
+        // Crossing boundary: draw transition thread and small entry/exit puncture holes!
+        ctx.strokeStyle = '#ea580c';
+        ctx.setLineDash([]);
+        ctx.stroke();
+        
+        ctx.save();
+        ctx.fillStyle = '#451a03'; // dark hole
+        ctx.beginPath();
+        ctx.arc(p2.x, p2.y, 4.5, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
     ctx.setLineDash([]);
 
     // Draw active needle shape at tip
     const last = GourdLab.dragPoints[GourdLab.dragPoints.length - 1];
     ctx.save();
     ctx.translate(last.x, last.y);
-    ctx.rotate(GourdLab.bendAngle); // apply bend if straight needle bent
+    ctx.rotate(GourdLab.bendAngle);
 
     ctx.fillStyle = '#cbd5e1';
     ctx.strokeStyle = '#292524';
@@ -129,7 +250,7 @@ function drawGourdScene(ctx, canvas) {
     // Draw outcome bubble on canvas
     if (GourdLab.outcome) {
       ctx.fillStyle = GourdLab.outcome.includes("SMOOTH") || GourdLab.outcome.includes("POP") ? '#10b981' : '#ef4444';
-      ctx.font = 'black 14px Outfit';
+      ctx.font = 'bold 14px Outfit';
       ctx.textAlign = 'center';
       ctx.fillText(GourdLab.outcome, last.x, last.y - 25);
     }
