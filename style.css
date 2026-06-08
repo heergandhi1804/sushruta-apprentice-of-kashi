@@ -8,28 +8,34 @@
   --font-cartoon: 'Outfit', sans-serif;
 
   /* Premium Light Airy Gurukul Palette */
-  --color-bg-tile: #faf9f6; 
+  --color-bg-tile: #faf9f6;
   --color-bg-tile-line: #eae8e2;
-  --color-dark-slate: #292524; /* Dark warm charcoal text */
-  --color-pink: #d946ef; /* Magenta copper tint */
-  --color-pink-hover: #e879f9;
+  --color-dark-slate: #292524;
+  /* Dark warm charcoal text */
+  --color-pink: #d946ef;
+  /* Magenta copper tint */
+  --color-pink-hover: #ff8dee;
   --color-pink-light: rgba(217, 70, 239, 0.08);
-  
-  --color-rose: #e11d48; /* Terracotta / Rose */
-  --color-rose-hover: #fb7185;
+
+  --color-rose: #e11d48;
+  /* Terracotta / Rose */
+  --color-rose-hover: #f0465f;
   --color-rose-light: rgba(225, 29, 72, 0.08);
 
-  --color-teal: #0d9488; /* Copper/Teal */
-  --color-teal-hover: #14b8a6;
+  --color-teal: #0d9488;
+  /* Copper/Teal */
+  --color-teal-hover: #20a091;
   --color-teal-light: rgba(13, 148, 136, 0.08);
-  
-  --color-mint: #059669; 
+
+  --color-mint: #059669;
   --color-mint-light: rgba(5, 150, 105, 0.08);
-  --color-orange: #ea580c; /* Ochre / Terracotta */
+  --color-orange: #ea580c;
+  /* Ochre / Terracotta */
   --color-orange-light: rgba(234, 88, 12, 0.08);
-  
-  --color-purple: #9333ea; 
-  --color-card-bg: rgba(255, 255, 255, 0.92); /* glassmorphism */
+
+  --color-purple: #9333ea;
+  --color-card-bg: rgba(255, 255, 255, 0.92);
+  /* glassmorphism */
   --color-border: rgba(41, 37, 36, 0.08);
 }
 
@@ -42,7 +48,7 @@
 body {
   font-family: var(--font-body);
   background-color: #faf9f5;
-  background-image: radial-gradient(circle 450px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(217, 70, 239, 0.15) 0%, rgba(13, 148, 136, 0.06) 50%, transparent 100%);
+  background-image: radial-gradient(circle 300px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(217, 70, 239, 0.15) 0%, rgba(13, 148, 136, 0.06) 50%, transparent 100%);
   color: var(--color-dark-slate);
   height: 100vh;
   display: flex;
@@ -51,7 +57,12 @@ body {
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-cartoon);
   font-weight: 800;
   color: var(--color-dark-slate);
@@ -279,7 +290,7 @@ canvas {
   padding: 2px 6px;
   border: 1px solid var(--color-border);
   border-radius: 9999px;
-  background: rgba(0,0,0,0.03);
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .station-card h3 {
@@ -381,7 +392,7 @@ canvas {
   background: var(--color-rose-light);
   border-color: var(--color-rose);
   color: var(--color-rose);
-  box-shadow: 0 2px 6px rgba(225, 29, 72, 0.1);
+  box-shadow: 0 2px 2px rgba(225, 29, 72, 0.1);
 }
 
 /* Slider group */
@@ -415,7 +426,7 @@ input[type="range"]::-webkit-slider-thumb {
   border: 2.5px solid #ffffff;
   background: var(--color-rose);
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 2px rgba(54, 52, 52, 0.2);
 }
 
 select {
@@ -480,6 +491,7 @@ select {
   color: white;
   border-color: transparent;
 }
+
 .cartoon-btn.primary:hover {
   background: var(--color-rose-hover);
   box-shadow: 0 4px 10px rgba(225, 29, 72, 0.2);
@@ -490,6 +502,7 @@ select {
   color: var(--color-teal);
   border-color: transparent;
 }
+
 .cartoon-btn.secondary:hover {
   background: rgba(13, 148, 136, 0.15);
 }
@@ -606,6 +619,7 @@ select {
   padding: 8px;
   color: #57534e;
 }
+
 .telemetry-gauge-card h5 {
   font-size: 0.6rem;
   text-transform: uppercase;
@@ -819,13 +833,29 @@ select {
 }
 
 @keyframes popIn {
-  0% { transform: scale(0.92); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.06); opacity: 0.75; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.06);
+    opacity: 0.75;
+  }
 }
 
 /* Courtyard layout override */
