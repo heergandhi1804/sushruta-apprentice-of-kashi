@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sushruta: The Apprentice of Kashi</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Cinzel:wght@700;900&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- TOP APP BAR -->
+  <header>
+    <div class="header-left">
+      <div class="logo-icon">
+        <i data-lucide="award" class="w-5 h-5"></i>
+      </div>
+      <div class="logo-text">
+        <h1 class="font-cinzel">SUSHRUTA: APPRENTICE OF KASHI</h1>
+        <p class="logo-sub">Learn by Doing • Playful Trial & Consequence</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="pathway-info">
+        <span class="pathway-label">Apprentice Rank</span>
+        <span id="current-pathway-badge" class="pathway-value font-cinzel">Observer</span>
+      </div>
+      <div class="progress-bar-container">
+        <div id="pathway-progress" class="progress-bar-fill"></div>
+      </div>
+      <button onclick="toggleStickerBook()" class="cartoon-btn secondary">
+        <i data-lucide="scroll" class="w-4 h-4"></i>
+        <span>Sticker Book</span>
+        <span id="sticker-alert-dot" class="alert-dot hidden"></span>
+      </button>
+      <button onclick="restartSimulation()" class="cartoon-btn secondary">
+        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+        <span>Reset</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main>
+    
+    <!-- SCREEN 0: PROLOGUE -->
+    <div id="screen-prologue" class="screen-wrapper">
+      <div class="cartoon-card prologue-card">
+        <div class="prologue-header">
+          <span>Ancient Kashi Gurukul</span>
+          <h2 class="font-cinzel">THE APPRENTICESHIP BEGINS</h2>
+          <div class="divider"></div>
+        </div>
+
+        <div class="prologue-body">
+          <div class="avatar-circle">
+            <i data-lucide="user" class="w-8 h-8"></i>
+          </div>
+          
+          <div class="dialogue-block">
+            <p class="dialogue-text">
+              "A healer observes first. Train your hands. Train your eyes."
+            </p>
+            <button onclick="beginApprenticeship()" class="cartoon-btn primary" style="margin: 24px auto 0 auto; padding: 12px 24px; font-size: 0.9rem;">
+              Begin Apprenticeship
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEVEL 1: COURTYARD MAP -->
+    <div id="screen-courtyard" class="screen-wrapper hidden">
+      <div class="split-viewport">
+        <!-- Left panel: Station Cards Grid -->
+        <section class="left-panel">
+          <div class="section-title-row">
+            <h2 class="font-cinzel">APPRENTICE PRACTICE COURTYARD</h2>
+            <p class="section-desc">Train your hands in four playful simulation yards before meeting patients.</p>
+          </div>
+          
+          <div class="courtyard-grid">
+            <!-- Station 1: Gourd Pop -->
+            <div onclick="enterStation('gourd')" class="cartoon-card interactive station-card">
+              <div class="station-meta">
+                <span class="station-number">Yard 1</span>
+                <span id="badge-gourd" class="station-status-badge">Unlocked</span>
+              </div>
+              <h3>Gourd Pop</h3>
+              <p>Drag needle shapes through organic rinds. Pop, stick, tear, or bend to feel material resistance.</p>
+              <div class="station-action">
+                <span>Enter Yard</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </div>
+            </div>
+
+            <!-- Station 2: Thread Master -->
+            <div onclick="enterStation('cloth')" class="cartoon-card interactive station-card">
+              <div class="station-meta">
+                <span class="station-number">Yard 2</span>
+                <span id="badge-cloth" class="station-status-badge">Unlocked</span>
+              </div>
+              <h3>Thread Master</h3>
+              <p>Connect stitch points across the torn gap. Keep spacing even for smooth closures.</p>
+              <div class="station-action">
+                <span>Enter Yard</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </div>
+            </div>
+
+            <!-- Station 3: Bamboo Maze -->
+            <div onclick="enterStation('bamboo')" class="cartoon-card interactive station-card">
+              <div class="station-meta">
+                <span class="station-number">Yard 3</span>
+                <span id="badge-bamboo" class="station-status-badge">Unlocked</span>
+              </div>
+              <h3>Bamboo Maze</h3>
+              <p>Guide Straight, Curved, or Hooked probes. Collect golden lotuses and avoid sparks.</p>
+              <div class="station-action">
+                <span>Enter Yard</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </div>
+            </div>
+
+            <!-- Station 4: Wrap Race -->
+            <div onclick="enterStation('doll')" class="cartoon-card interactive station-card">
+              <div class="station-meta">
+                <span class="station-number">Yard 4</span>
+                <span id="badge-doll" class="station-status-badge">Unlocked</span>
+              </div>
+              <h3>Wrap Race</h3>
+              <p>Wrap linen doll joints and test active movements. Secure wraps, or see them slip!</p>
+              <div class="station-action">
+                <span>Enter Yard</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        <!-- Right panel: Progress summary -->
+        <aside class="right-panel">
+          <div class="cartoon-card progress-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 class="panel-section-title font-cinzel"><i data-lucide="trophy" class="w-4 h-4"></i> Badge Shelf</h3>
+              <div id="courtyard-progress-text" class="progress-headline font-cinzel">0 / 4 Yards Complete</div>
+              <p style="font-size: 0.75rem; color: #64748b; line-height: 1.4; margin-top: 10px;">
+                Complete all four courtyard games to unlock the Gurukul Tool Match challenge.
+              </p>
+              
+              <div id="shelf-badges-grid" class="shelf-badges-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px;">
+                <div id="shelf-badge-gourd" class="shelf-badge locked"><i data-lucide="circle-dot"></i><span>Gourd Popper</span></div>
+                <div id="shelf-badge-cloth" class="shelf-badge locked"><i data-lucide="activity"></i><span>Thread Master</span></div>
+                <div id="shelf-badge-bamboo" class="shelf-badge locked"><i data-lucide="compass"></i><span>Maze Explorer</span></div>
+                <div id="shelf-badge-doll" class="shelf-badge locked"><i data-lucide="heart"></i><span>Wrap Expert</span></div>
+              </div>
+            </div>
+            
+            <button id="btn-gallery-transition" onclick="transitionToGallery()" class="cartoon-btn primary" disabled style="width: 100%; justify-content: center;">
+              <span>Enter Tool Match</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- STATION 1: GOURD POP -->
+    <div id="screen-gourd" class="screen-wrapper hidden">
+      <div class="split-viewport">
+        <section class="left-panel">
+          <div class="section-title-row">
+            <button onclick="backToCourtyard()" class="cartoon-btn secondary"><i data-lucide="chevron-left" class="w-4 h-4"></i> Back</button>
+            <h2 class="font-cinzel">Gourd Pop Mini-Sim</h2>
+          </div>
+          <div class="canvas-container">
+            <canvas id="canvas-gourd"></canvas>
+          </div>
+        </section>
+        <aside class="right-panel">
+          <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 class="panel-section-title font-cinzel">POP MATERIALS</h3>
+              
+              <!-- Materials selection -->
+              <div class="variable-group">
+                <span class="lbl-small">Select Rind</span>
+                <div class="selection-pill-grid">
+                  <button onclick="selectGourdMaterial('soft')" id="btn-mat-soft" class="selection-pill active">Soft Gourd</button>
+                  <button onclick="selectGourdMaterial('thick')" id="btn-mat-thick" class="selection-pill">Thick Gourd</button>
+                  <button onclick="selectGourdMaterial('melon')" id="btn-mat-melon" class="selection-pill">Curved Melon</button>
+                </div>
+              </div>
+
+              <!-- Needle selection -->
+              <div class="variable-group" style="margin-top: 12px;">
+                <span class="lbl-small">Select Needle</span>
+                <div class="selection-pill-grid">
+                  <button onclick="selectGourdNeedle('curved')" id="btn-ndl-curved" class="selection-pill active">Curved</button>
+                  <button onclick="selectGourdNeedle('straight')" id="btn-ndl-straight" class="selection-pill">Straight</button>
+                  <button onclick="selectGourdNeedle('triangular')" id="btn-ndl-triangular" class="selection-pill">Triangular</button>
+                </div>
+              </div>
+
+              <!-- Mentor Quote -->
+              <div class="live-feed-card mentor-quote-box" style="margin-top: 16px;">
+                <h5>Sushruta Mentor</h5>
+                <p id="gourd-mentor-tip">"Observe rind thickness first."</p>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button onclick="resetGourdLab()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset
+              </button>
+              <button onclick="completeStation('gourd')" class="cartoon-btn primary" style="width: 100%; justify-content: center;">
+                Complete Challenge
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- STATION 2: THREAD MASTER -->
+    <div id="screen-cloth" class="screen-wrapper hidden">
+      <div class="split-viewport">
+        <section class="left-panel">
+          <div class="section-title-row">
+            <button onclick="backToCourtyard()" class="cartoon-btn secondary"><i data-lucide="chevron-left" class="w-4 h-4"></i> Back</button>
+            <h2 class="font-cinzel">Thread Master Stitch Puzzle</h2>
+          </div>
+          <div class="canvas-container">
+            <canvas id="canvas-cloth"></canvas>
+          </div>
+        </section>
+        <aside class="right-panel">
+          <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 class="panel-section-title font-cinzel">STITCH CONTROLS</h3>
+              
+              <div class="slider-group">
+                <div class="slider-label-row">
+                  <span class="lbl-small">Stitch Tension</span>
+                  <span id="cloth-tension-val" style="color: var(--color-pink); font-weight: 800;">50%</span>
+                </div>
+                <input type="range" id="cloth-tension-slider" min="10" max="100" value="50" oninput="updateClothTension()">
+              </div>
+
+              <!-- Stats / Combo -->
+              <div class="live-feed-card" style="margin-top: 16px;">
+                <h5>Stitch Progress</h5>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-weight: 700;">
+                  <div>Stitches: <span id="cloth-stitch-count">0</span></div>
+                  <div>Combo Streak: <span id="cloth-combo-streak" style="color: var(--color-teal);">0</span></div>
+                </div>
+              </div>
+
+              <!-- Mentor Quote -->
+              <div class="live-feed-card mentor-quote-box" style="margin-top: 16px;">
+                <h5>Sushruta Mentor</h5>
+                <p id="cloth-mentor-tip">"Too much pull wrinkles."</p>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button onclick="clearStitches()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Clear & Retry
+              </button>
+              <button onclick="completeStation('cloth')" class="cartoon-btn primary" style="width: 100%; justify-content: center;">
+                Complete Challenge
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- STATION 3: BAMBOO MAZE -->
+    <div id="screen-bamboo" class="screen-wrapper hidden">
+      <div class="split-viewport">
+        <section class="left-panel">
+          <div class="section-title-row">
+            <button onclick="backToCourtyard()" class="cartoon-btn secondary"><i data-lucide="chevron-left" class="w-4 h-4"></i> Back</button>
+            <h2 class="font-cinzel">Bamboo Probe Maze</h2>
+          </div>
+          <div class="canvas-container">
+            <canvas id="canvas-bamboo"></canvas>
+          </div>
+        </section>
+        <aside class="right-panel">
+          <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 class="panel-section-title font-cinzel">MAZE VEHICLES</h3>
+              
+              <div class="variable-group">
+                <span class="lbl-small">Probe Style</span>
+                <div class="selection-pill-grid" style="grid-template-columns: 1fr; gap: 8px;">
+                  <button onclick="selectBambooProbe('straight')" id="btn-probe-straight" class="selection-pill active">Straight Probe (Fast, collides in bends)</button>
+                  <button onclick="selectBambooProbe('curved')" id="btn-probe-curved" class="selection-pill">Curved Probe (Maneuverable in curves)</button>
+                  <button onclick="selectBambooProbe('hooked')" id="btn-probe-hooked" class="selection-pill">Hooked Probe (Grabs far tokens)</button>
+                </div>
+              </div>
+
+              <div class="live-feed-card" style="margin-top: 12px;">
+                <h5>Telemetry</h5>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-weight: 700;">
+                  <div>Sparks: <span id="bamboo-collisions" style="color: var(--color-rose);">0</span></div>
+                  <div>Lotuses: <span id="bamboo-tokens-val" style="color: #ca8a04;">0 / 3</span></div>
+                </div>
+                <div style="font-size: 0.65rem; margin-top: 4px;">Smoothness: <span id="bamboo-smoothness" style="color: var(--color-teal);">100%</span></div>
+              </div>
+
+              <!-- Mentor Quote -->
+              <div class="live-feed-card mentor-quote-box" style="margin-top: 12px;">
+                <h5>Sushruta Mentor</h5>
+                <p id="bamboo-mentor-tip">"Curved tools handle bends best."</p>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button onclick="resetBambooTunnel()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Maze
+              </button>
+              <button onclick="completeStation('bamboo')" class="cartoon-btn primary" style="width: 100%; justify-content: center;">
+                Complete Challenge
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- STATION 4: WRAP RACE -->
+    <div id="screen-doll" class="screen-wrapper hidden">
+      <div class="split-viewport">
+        <section class="left-panel">
+          <div class="section-title-row">
+            <button onclick="backToCourtyard()" class="cartoon-btn secondary"><i data-lucide="chevron-left" class="w-4 h-4"></i> Back</button>
+            <h2 class="font-cinzel">Wrap Race Joint Bandaging</h2>
+          </div>
+          <div class="canvas-container">
+            <canvas id="canvas-doll"></canvas>
+          </div>
+        </section>
+        <aside class="right-panel">
+          <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 class="panel-section-title font-cinzel">WRAPPING TARGET</h3>
+              
+              <div class="variable-group">
+                <span class="lbl-small">Select Joint</span>
+                <div class="selection-pill-grid" style="grid-template-columns: repeat(2, 1fr);">
+                  <button onclick="selectDollBody('finger')" id="btn-doll-finger" class="selection-pill active">Finger</button>
+                  <button onclick="selectDollBody('arm')" id="btn-doll-arm" class="selection-pill">Arm</button>
+                  <button onclick="selectDollBody('knee')" id="btn-doll-knee" class="selection-pill">Knee</button>
+                  <button onclick="selectDollBody('head')" id="btn-doll-head" class="selection-pill">Head</button>
+                </div>
+              </div>
+
+              <div class="slider-group">
+                <div class="slider-label-row">
+                  <span class="lbl-small">Tightness</span>
+                  <span id="doll-tightness-val" style="color: var(--color-pink); font-weight: 800;">5</span>
+                </div>
+                <input type="range" id="doll-tightness" min="1" max="10" value="5" oninput="updateDollCalculations()">
+              </div>
+
+              <!-- Movement Action triggers -->
+              <div class="variable-group" style="margin-top: 12px;">
+                <span class="lbl-small">Active Movement Test</span>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 4px;">
+                  <button onclick="testDollMovement('walk')" class="selection-pill" style="padding: 6px 0;">Walk</button>
+                  <button onclick="testDollMovement('bend')" class="selection-pill" style="padding: 6px 0;">Bend</button>
+                  <button onclick="testDollMovement('turn')" class="selection-pill" style="padding: 6px 0;">Turn</button>
+                </div>
+              </div>
+
+              <div class="live-feed-card" style="margin-top: 10px;">
+                <h5>Wrap Output</h5>
+                <div>Layers: <span id="doll-layers">0</span></div>
+                <div style="font-weight: 800; margin-top: 2px;">Status: <span id="doll-compression-status">Unwrapped</span></div>
+              </div>
+
+              <!-- Mentor Quote -->
+              <div class="live-feed-card mentor-quote-box" style="margin-top: 10px;">
+                <h5>Sushruta Mentor</h5>
+                <p id="doll-mentor-tip">"Loose wraps slip under movement."</p>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button onclick="resetDollStation()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Wrap
+              </button>
+              <button onclick="completeStation('doll')" class="cartoon-btn primary" style="width: 100%; justify-content: center;">
+                Complete Challenge
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- LEVEL 1.5: TOOL GALLERY (TOOL MATCH) -->
+    <div id="screen-gallery" class="screen-wrapper hidden">
+      <div class="split-viewport">
+        <section class="left-panel">
+          <div class="section-title-row">
+            <h2 class="font-cinzel">GURUKUL ANIMAL TOOL MATCH</h2>
+            <p class="section-desc">Associate natural animal structures to their engineered gurukul counterparts.</p>
+          </div>
+          <div class="canvas-container">
+            <canvas id="canvas-gallery"></canvas>
+          </div>
+          <div class="control-btn-grid" style="margin-top: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+            <button onclick="selectGalleryTool('probe')" id="btn-gtool-probe" class="selection-pill active">Probe (Salaka)</button>
+            <button onclick="selectGalleryTool('forceps')" id="btn-gtool-forceps" class="selection-pill">Forceps (Simhamukha)</button>
+            <button onclick="selectGalleryTool('scalpel')" id="btn-gtool-scalpel" class="selection-pill">Scalpel (Mandalagra)</button>
+            <button onclick="selectGalleryTool('needle')" id="btn-gtool-needle" class="selection-pill">Needle (Suchi)</button>
+          </div>
+        </section>
+        <aside class="right-panel">
+          <div class="cartoon-card match-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 class="panel-section-title font-cinzel">ANIMAL INSPIRATIONS</h3>
+              
+              <div class="biomimicry-row">
+                <span>Probe (Salaka)</span>
+                <select id="match-probe" onchange="checkBiomimicry()">
+                  <option value="none">Choose Animal Shape</option>
+                  <option value="fish">Fish Mouth</option>
+                  <option value="lion">Lion Jaw</option>
+                  <option value="crane">Crane Beak</option>
+                  <option value="claw">Bird Claw</option>
+                </select>
+              </div>
+
+              <div class="biomimicry-row">
+                <span>Forceps (Simhamukha)</span>
+                <select id="match-forceps" onchange="checkBiomimicry()">
+                  <option value="none">Choose Animal Shape</option>
+                  <option value="fish">Fish Mouth</option>
+                  <option value="lion">Lion Jaw</option>
+                  <option value="crane">Crane Beak</option>
+                  <option value="claw">Bird Claw</option>
+                </select>
+              </div>
+
+              <div class="biomimicry-row">
+                <span>Scalpel (Mandalagra)</span>
+                <select id="match-scalpel" onchange="checkBiomimicry()">
+                  <option value="none">Choose Animal Shape</option>
+                  <option value="fish">Fish Mouth</option>
+                  <option value="lion">Lion Jaw</option>
+                  <option value="crane">Crane Beak</option>
+                  <option value="claw">Bird Claw</option>
+                </select>
+              </div>
+
+              <div class="biomimicry-row">
+                <span>Needle (Suchi)</span>
+                <select id="match-needle" onchange="checkBiomimicry()">
+                  <option value="none">Choose Animal Shape</option>
+                  <option value="fish">Fish Mouth</option>
+                  <option value="lion">Lion Jaw</option>
+                  <option value="crane">Crane Beak</option>
+                  <option value="claw">Bird Claw</option>
+                </select>
+              </div>
+
+              <!-- Mentor Quote -->
+              <div class="live-feed-card mentor-quote-box" style="margin-top: 10px;">
+                <h5>Sushruta Mentor</h5>
+                <p id="match-mentor-tip">"Shape helps grip."</p>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button onclick="resetToolMatch()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Matches
+              </button>
+              <button id="btn-gallery-next" onclick="advanceToLevel2()" class="cartoon-btn primary" disabled style="width: 100%; justify-content: center;">
+                <span>Meet Patients</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- LEVEL 2: FIRST PATIENTS (PATIENT INTAKE) -->
+    <div id="screen-level2" class="screen-wrapper hidden">
+      <div class="split-viewport">
+        <section class="left-panel">
+          <div class="section-title-row">
+            <h2 class="font-cinzel">FIRST PATIENTS</h2>
+          </div>
+          
+          <!-- Patient Grid -->
+          <div class="patient-grid">
+            <div onclick="selectLevel2Patient('potter')" id="btn-pat-potter" class="patient-card">
+              <h4>Madhava</h4>
+              <span>Wrist Cut</span>
+              <p>Needs hand flex to shape clay pots.</p>
+            </div>
+            <div onclick="selectLevel2Patient('carpenter')" id="btn-pat-carpenter" class="patient-card">
+              <h4>Devadatta</h4>
+              <span>Palm Cut</span>
+              <p>Needs strong grip structure for heavy adze work.</p>
+            </div>
+            <div onclick="selectLevel2Patient('dancer')" id="btn-pat-dancer" class="patient-card">
+              <h4>Malati</h4>
+              <span>Knee Scrape</span>
+              <p>Needs smooth healing without tight scar binding.</p>
+            </div>
+            <div onclick="selectLevel2Patient('messenger')" id="btn-pat-messenger" class="patient-card">
+              <h4>Vilas</h4>
+              <span>Thigh Cut</span>
+              <p>Needs fast repair to clench forest treks.</p>
+            </div>
+          </div>
+
+          <!-- Diagnosis Panel -->
+          <div id="level2-diagnosis-panel" class="canvas-container hidden">
+            <canvas id="canvas-diagnosis"></canvas>
+          </div>
+        </section>
+        
+        <aside class="right-panel">
+          <div class="cartoon-card diagnosis-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 class="panel-section-title font-cinzel">INVESTIGATION</h3>
+              
+              <!-- LOOK and STRETCH toggles -->
+              <div class="diagnosis-toolbar" style="margin-bottom: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <button onclick="triggerDiagTool('look')" id="btn-diag-look" class="selection-pill">LOOK (Scan Wound)</button>
+                <button onclick="triggerDiagTool('stretch')" id="btn-diag-stretch" class="selection-pill">STRETCH (Test Stiffness)</button>
+              </div>
+
+              <!-- ASK button -->
+              <div class="variable-group">
+                <button onclick="triggerDiagTool('ask')" id="btn-diag-ask" class="cartoon-btn secondary" style="width: 100%; justify-content: center; padding: 10px;">
+                  <i data-lucide="message-circle" class="w-4 h-4"></i> ASK Patient Details
+                </button>
+              </div>
+
+              <div id="diag-clue-feed" class="live-feed-card" style="min-height: 80px; margin-top: 12px;">
+                Select a patient to begin clinical observation.
+              </div>
+
+              <!-- Mentor Quote -->
+              <div class="live-feed-card mentor-quote-box" style="margin-top: 12px;">
+                <h5>Sushruta Mentor</h5>
+                <p id="patient-mentor-tip">"Observe the patient's need."</p>
+              </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button onclick="resetIntake()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Intake
+              </button>
+              <button id="btn-diagnosis-next" onclick="enterSutureChallenge()" class="cartoon-btn primary hidden" style="width: 100%; justify-content: center;">
+                <span>Begin Suture Repair</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- LEVEL 3: SUTURE CHALLENGE -->
+    <div id="screen-treatment" class="screen-wrapper hidden">
+      <div class="split-viewport">
+        <section class="left-panel">
+          <div class="section-title-row">
+            <h2 id="treatment-title" class="font-cinzel">SUTURE REPAIR</h2>
+            <span id="treatment-patient-tag" class="logo-badge">Patient</span>
+          </div>
+          <div class="canvas-container">
+            <canvas id="canvas-treatment"></canvas>
+          </div>
+        </section>
+        
+        <aside class="right-panel">
+          <div class="cartoon-card variables-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 class="panel-section-title font-cinzel">REPAIR CONTROLS</h3>
+
+              <!-- Tool setups -->
+              <div class="variable-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;">
+                <div>
+                  <span class="lbl-small">Needle</span>
+                  <select id="active-needle-selector" onchange="updateActiveTools()">
+                    <option value="curved">Curved (Flexible)</option>
+                    <option value="straight">Straight (Fast)</option>
+                    <option value="triangular">Triangular (Strong)</option>
+                  </select>
+                </div>
+                <div>
+                  <span class="lbl-small">Thread</span>
+                  <select id="active-thread-selector" onchange="updateActiveTools()">
+                    <option value="cotton">Cotton (Soft)</option>
+                    <option value="hemp">Hemp (Strong)</option>
+                    <option value="horsehair">Horsehair (Elastic)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Tension slider -->
+              <div class="slider-group">
+                <div class="slider-label-row">
+                  <span class="lbl-small">Pull Tension</span>
+                  <span id="treat-tension-val" style="color: var(--color-pink); font-weight: 800;">50%</span>
+                </div>
+                <input type="range" id="treat-tension-slider" min="10" max="100" value="50" oninput="updateTreatmentTension()">
+              </div>
+
+              <!-- Simple outcome meters -->
+              <div class="live-feed-card" style="margin-top: 12px;">
+                <h5>Expected Outcome</h5>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; text-align: center; margin-top: 4px;">
+                  <div style="background: rgba(0,0,0,0.02); border-radius: 4px; padding: 4px;">
+                    <span style="font-size: 0.55rem; color: #78716c; display: block;">STRENGTH</span>
+                    <span id="gauge-closure" style="font-weight: 800; font-size: 0.8rem; color: var(--color-rose);">0%</span>
+                  </div>
+                  <div style="background: rgba(0,0,0,0.02); border-radius: 4px; padding: 4px;">
+                    <span style="font-size: 0.55rem; color: #78716c; display: block;">SPEED</span>
+                    <span id="gauge-bleed" style="font-weight: 800; font-size: 0.8rem; color: var(--color-orange);">0%</span>
+                  </div>
+                  <div style="background: rgba(0,0,0,0.02); border-radius: 4px; padding: 4px;">
+                    <span style="font-size: 0.55rem; color: #78716c; display: block;">SMOOTHNESS</span>
+                    <span id="gauge-comfort" style="font-weight: 800; font-size: 0.8rem; color: var(--color-teal);">0%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="live-feed-card" style="margin-top: 8px;">
+                <h5>Limits</h5>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-weight: 700;">
+                  <div>Thread: <span id="res-thread">0 / 5 Stitches</span></div>
+                  <div>Needle Wear: <span id="res-needle">100%</span></div>
+                </div>
+              </div>
+
+              <!-- Mentor Quote -->
+              <div class="live-feed-card mentor-quote-box" style="margin-top: 10px;">
+                <h5>Sushruta Mentor</h5>
+                <p id="mentor-treatment-tip">"Strong holds tension, curved allows movement."</p>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button onclick="clearTreatmentStitches()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Clear Suture
+              </button>
+              <button onclick="completeTreatment()" class="cartoon-btn primary" style="width: 100%; justify-content: center;">
+                Apply Suture
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- LEVEL 4: HEALING TIME MACHINE -->
+    <div id="screen-healing" class="screen-wrapper hidden">
+      <div class="split-viewport">
+        <section class="left-panel">
+          <div class="section-title-row">
+            <h2 class="font-cinzel">HEALING TIME MACHINE</h2>
+          </div>
+          <div class="canvas-container">
+            <canvas id="canvas-healing"></canvas>
+          </div>
+          
+          <!-- Slider only: Day 0, Day 7, Day 30 -->
+          <div style="width: 100%; margin-top: 16px; padding: 0 16px;">
+            <input type="range" id="healing-slider" min="0" max="2" value="0" step="1" oninput="updateHealingTimeStep()" style="width: 100%;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 800; color: #64748b; margin-top: 6px;">
+              <span>DAY 0: CLOSURE</span>
+              <span>DAY 7: RE-EPITHELIAL</span>
+              <span>DAY 30: REMODELED</span>
+            </div>
+          </div>
+        </section>
+        
+        <aside class="right-panel">
+          <div class="cartoon-card reflection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 class="panel-section-title font-cinzel">OUTCOME OBSERVER</h3>
+              
+              <div class="live-feed-card" style="margin-top: 12px; font-weight: 700; color: var(--color-dark-slate);">
+                <div id="time-machine-day" style="font-size: 0.9rem; color: var(--color-rose); margin-bottom: 6px;">Day 0: Initial Suture Closure</div>
+                <div id="healing-reflective-tip" style="font-weight: 500; font-size: 0.75rem; line-height: 1.4; color: #4b5563;">
+                  Observe Day 30 remodeling. High tension wider scar traces.
+                </div>
+              </div>
+              
+              <!-- Mentor Quote -->
+              <div class="live-feed-card mentor-quote-box" style="margin-top: 16px;">
+                <h5>Sushruta Mentor</h5>
+                <p id="healing-mentor-tip">"Day 30 reveals your balance."</p>
+              </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button onclick="backToSutureChallenge()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i> Back to Suture
+              </button>
+              <button onclick="advanceFromHealing()" class="cartoon-btn primary" style="width: 100%; justify-content: center;">
+                Acknowledge Outcome
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- LEVEL 4.5: GRADUATION / APPRENTICE BADGE SCREEN -->
+    <div id="screen-graduation" class="screen-wrapper hidden">
+      <div class="cartoon-card prologue-card" style="text-align: center; max-width: 500px; margin: 6vh auto; display: flex; flex-direction: column; gap: 16px;">
+        <h2 class="font-cinzel" style="font-size: 1.6rem; color: var(--color-pink);">APPRENTICE GRADUATION</h2>
+        <div class="divider"></div>
+        
+        <div class="logo-icon" style="width: 64px; height: 64px; margin: 8px auto; background: var(--color-teal-light); border-radius: 9999px; color: var(--color-teal); display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
+          <i data-lucide="award" class="w-10 h-10"></i>
+        </div>
+
+        <h3 class="font-cinzel">Rank: Healer</h3>
+        
+        <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4;">
+          You have learned that healing is about balancing tension. You are ready to train as a master clinician in Kashi.
+        </p>
+
+        <div class="font-cinzel" style="font-weight: 800; font-size: 0.85rem;">
+          FINAL APPRENTICE RANK: <span id="grad-pathway" style="color: var(--color-teal);">Sushruta's Apprentice</span>
+        </div>
+
+        <button onclick="restartSimulation()" class="cartoon-btn primary" style="margin: 16px auto 0 auto;">
+          Restart Apprenticeship
+        </button>
+      </div>
+    </div>
+
+    <!-- STICKER BOOK DRAWER -->
+    <aside id="journal-sidebar" class="journal-sidebar">
+      <div class="journal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--color-border); padding-bottom: 8px; margin-bottom: 12px;">
+        <h3 class="font-cinzel" style="font-size: 1.1rem; display: flex; align-items: center; gap: 8px; color: var(--color-dark-slate);">
+          <i data-lucide="award" class="w-5 h-5" style="color: var(--color-pink);"></i> STICKER BOOK
+        </h3>
+        <button onclick="toggleStickerBook()" style="background: transparent; border: none; cursor: pointer; color: #64748b;">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Sticker list of discoveries -->
+      <div id="sticker-grid" class="sticker-grid" style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1; overflow-y: auto; padding-right: 4px;">
+        <div id="badge-stk-gourd" class="sticker-card locked">
+          <div class="badge-icon"><i data-lucide="circle-dot"></i></div>
+          <div class="badge-info">
+            <strong>Gourd Popper</strong>
+            <p>"Rind resistance requires a sharp tip."</p>
+          </div>
+        </div>
+        <div id="badge-stk-cloth" class="sticker-card locked">
+          <div class="badge-icon"><i data-lucide="activity"></i></div>
+          <div class="badge-info">
+            <strong>Thread Master</strong>
+            <p>"Too much pull wrinkles cloth."</p>
+          </div>
+        </div>
+        <div id="badge-stk-bamboo" class="sticker-card locked">
+          <div class="badge-icon"><i data-lucide="compass"></i></div>
+          <div class="badge-info">
+            <strong>Bamboo Navigator</strong>
+            <p>"Curved tools like curves."</p>
+          </div>
+        </div>
+        <div id="badge-stk-doll" class="sticker-card locked">
+          <div class="badge-icon"><i data-lucide="heart"></i></div>
+          <div class="badge-info">
+            <strong>Wrap Expert</strong>
+            <p>"Loose wraps slip."</p>
+          </div>
+        </div>
+        <div id="badge-stk-tool" class="sticker-card locked">
+          <div class="badge-icon"><i data-lucide="feather"></i></div>
+          <div class="badge-info">
+            <strong>Animal Tool Finder</strong>
+            <p>"Nature guides tool shapes."</p>
+          </div>
+        </div>
+        <div id="badge-stk-patient" class="sticker-card locked">
+          <div class="badge-icon"><i data-lucide="users"></i></div>
+          <div class="badge-info">
+            <strong>First Healer</strong>
+            <p>"Visual clues guide the suture."</p>
+          </div>
+        </div>
+        <div id="badge-stk-apprentice" class="sticker-card locked">
+          <div class="badge-icon"><i data-lucide="star"></i></div>
+          <div class="badge-info">
+            <strong>Sushruta's Apprentice</strong>
+            <p>"Balance strength and comfort."</p>
+          </div>
+        </div>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: #94a3b8; border-top: 1.5px solid var(--color-border); padding-top: 8px; font-weight: 700; margin-top: 8px;">
+        <span>Gurukul Badge Book</span>
+        <span>Kashi</span>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- JAVASCRIPT FILES -->
+  <script src="canvas.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
