@@ -294,6 +294,9 @@ function initGourdLab() {
   canvas.onmousedown = (e) => {
     GourdLab.isDrawing = true;
     GourdLab.dragPoints = [];
+    GourdLab.squashY = 0;
+    GourdLab.bendAngle = 0;
+    GourdLab.outcome = ""; // clear outcome bubble on new drag
     const rect = canvas.getBoundingClientRect();
     GourdLab.dragPoints.push({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
@@ -317,6 +320,13 @@ function initGourdLab() {
     if (GourdLab.isDrawing) {
       GourdLab.isDrawing = false;
       evaluateGourdPuncture();
+      // Reset squash/bend if the needle isn't stuck/bent
+      if (GourdLab.outcome !== "STUCK!") {
+        GourdLab.squashY = 0;
+      }
+      if (GourdLab.outcome !== "BENT!") {
+        GourdLab.bendAngle = 0;
+      }
       drawGourdScene(ctx, canvas);
     }
   };

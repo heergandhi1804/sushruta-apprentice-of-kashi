@@ -32,9 +32,9 @@ function isInsideGourd(x, y, canvas) {
   const h = 95; // height of gourd body
 
   if (GourdLab.material === 'melon') {
-    // Check if inside melon crescent (semi-circle on flat line cy-20)
-    const dist = Math.hypot(x - cx, y - (cy - 20));
-    return dist >= 0 && dist <= 120 && y >= cy - 20;
+    // Check if inside melon crescent (semi-circle on flat line cy-25)
+    const dist = Math.hypot(x - cx, y - (cy - 25));
+    return dist >= 0 && dist <= 150 && y >= cy - 25;
   } else {
     // Check if inside bottle gourd body
     const startX = cx - w/2;
@@ -78,48 +78,48 @@ function drawGourdScene(ctx, canvas) {
   ctx.save();
   
   if (GourdLab.material === 'melon') {
-    // Symmetrical squash for Melon: scale vertically by (1 - squash/120)
-    const scaleY = 1 - squash / 120;
+    // Symmetrical squash for Melon: scale vertically by (1 - squash/140)
+    const scaleY = 1 - squash / 140;
     
     // Draw outer green rind
     ctx.fillStyle = '#0f766e';
     ctx.beginPath();
-    ctx.ellipse(cx, cy - 20, 120, 120 * scaleY, 0, 0, Math.PI);
-    ctx.lineTo(cx - 120, cy - 20);
+    ctx.ellipse(cx, cy - 25, 150, 150 * scaleY, 0, 0, Math.PI);
+    ctx.lineTo(cx - 150, cy - 25);
     ctx.closePath();
     ctx.fill();
 
     // Draw inner light rind layer
     ctx.fillStyle = '#ccfbf1';
     ctx.beginPath();
-    ctx.ellipse(cx, cy - 20, 110, 110 * scaleY, 0, 0, Math.PI);
-    ctx.lineTo(cx - 110, cy - 20);
+    ctx.ellipse(cx, cy - 25, 138, 138 * scaleY, 0, 0, Math.PI);
+    ctx.lineTo(cx - 138, cy - 25);
     ctx.closePath();
     ctx.fill();
 
     // Draw melon flesh
     ctx.fillStyle = '#fda4af';
     ctx.beginPath();
-    ctx.ellipse(cx, cy - 20, 100, 100 * scaleY, 0, 0, Math.PI);
-    ctx.lineTo(cx - 100, cy - 20);
+    ctx.ellipse(cx, cy - 25, 125, 125 * scaleY, 0, 0, Math.PI);
+    ctx.lineTo(cx - 125, cy - 25);
     ctx.closePath();
     ctx.fill();
 
     // Draw flat top slice face
     ctx.fillStyle = '#fecdd3';
     ctx.beginPath();
-    ctx.ellipse(cx, cy - 20, 86, 86 * scaleY, 0, 0, Math.PI);
-    ctx.lineTo(cx - 86, cy - 20);
+    ctx.ellipse(cx, cy - 25, 108, 108 * scaleY, 0, 0, Math.PI);
+    ctx.lineTo(cx - 108, cy - 25);
     ctx.closePath();
     ctx.fill();
 
     // Draw melon seeds
     ctx.fillStyle = '#451a03'; // brown seeds
     for (let angle = 0.2; angle < Math.PI - 0.2; angle += 0.4) {
-      const sx = cx + 65 * Math.cos(angle);
-      const sy = (cy - 20) + 65 * Math.sin(angle) * scaleY;
+      const sx = cx + 82 * Math.cos(angle);
+      const sy = (cy - 25) + 82 * Math.sin(angle) * scaleY;
       ctx.beginPath();
-      ctx.ellipse(sx, sy, 3, 5 * scaleY, angle, 0, 2*Math.PI);
+      ctx.ellipse(sx, sy, 4, 6 * scaleY, angle, 0, 2*Math.PI);
       ctx.fill();
     }
   } else {
