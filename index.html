@@ -23,7 +23,6 @@
       </div>
       <div class="logo-text">
         <h1 class="font-cinzel">SUSHRUTA: APPRENTICE OF KASHI</h1>
-        <p class="logo-sub">Learn by Doing • Playful Trial & Consequence</p>
       </div>
     </div>
     <div class="header-right">
@@ -38,10 +37,6 @@
         <i data-lucide="scroll" class="w-4 h-4"></i>
         <span>Sticker Book</span>
         <span id="sticker-alert-dot" class="alert-dot hidden"></span>
-      </button>
-      <button onclick="restartSimulation()" class="cartoon-btn secondary">
-        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-        <span>Reset</span>
       </button>
     </div>
   </header>
@@ -78,96 +73,81 @@
     <!-- LEVEL 1: COURTYARD MAP -->
     <div id="screen-courtyard" class="screen-wrapper hidden">
       <div class="split-viewport">
-        <!-- Left panel: Station Cards Grid -->
+        <!-- Left panel: Station Cards Grid (now full width and centered) -->
         <section class="left-panel">
-          <div class="section-title-row">
-            <h2 class="font-cinzel">APPRENTICE PRACTICE COURTYARD</h2>
-            <p class="section-desc">Train your hands in four playful simulation yards before meeting patients.</p>
-          </div>
-          
-          <div class="courtyard-grid">
-            <!-- Station 1: Gourd Pop -->
-            <div onclick="enterStation('gourd')" class="cartoon-card interactive station-card">
-              <div class="station-meta">
-                <span class="station-number">Yard 1</span>
-                <span id="badge-gourd" class="station-status-badge">Unlocked</span>
+          <div class="courtyard-container">
+            <div class="section-title-row">
+              <h2 class="font-cinzel">APPRENTICE PRACTICE COURTYARD</h2>
+              <span id="courtyard-progress-text" class="status-pill font-cinzel">0 / 4 Yards Complete</span>
+            </div>
+            
+            <div class="courtyard-grid">
+              <!-- Station 1: Gourd Pop -->
+              <div onclick="enterStation('gourd')" class="cartoon-card interactive station-card">
+                <div class="station-meta">
+                  <span class="station-number">Yard 1</span>
+                  <span id="badge-gourd" class="station-status-badge">Unlocked</span>
+                </div>
+                <h3>Gourd Pop</h3>
+                <p>Test needle resistance through organic rinds.</p>
+                <div class="station-action">
+                  <span>Enter Yard</span>
+                  <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </div>
               </div>
-              <h3>Gourd Pop</h3>
-              <p>Drag needle shapes through organic rinds. Pop, stick, tear, or bend to feel material resistance.</p>
-              <div class="station-action">
-                <span>Enter Yard</span>
-                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+
+              <!-- Station 2: Thread Master -->
+              <div onclick="enterStation('cloth')" class="cartoon-card interactive station-card">
+                <div class="station-meta">
+                  <span class="station-number">Yard 2</span>
+                  <span id="badge-cloth" class="station-status-badge">Unlocked</span>
+                </div>
+                <h3>Thread Master</h3>
+                <p>Connect stitch points across the torn gap.</p>
+                <div class="station-action">
+                  <span>Enter Yard</span>
+                  <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </div>
+              </div>
+
+              <!-- Station 3: Bamboo Maze -->
+              <div onclick="enterStation('bamboo')" class="cartoon-card interactive station-card">
+                <div class="station-meta">
+                  <span class="station-number">Yard 3</span>
+                  <span id="badge-bamboo" class="station-status-badge">Unlocked</span>
+                </div>
+                <h3>Bamboo Maze</h3>
+                <p>Guide probes through narrow pathways.</p>
+                <div class="station-action">
+                  <span>Enter Yard</span>
+                  <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </div>
+              </div>
+
+              <!-- Station 4: Wrap Race -->
+              <div onclick="enterStation('doll')" class="cartoon-card interactive station-card">
+                <div class="station-meta">
+                  <span class="station-number">Yard 4</span>
+                  <span id="badge-doll" class="station-status-badge">Unlocked</span>
+                </div>
+                <h3>Wrap Race</h3>
+                <p>Bandage joint limbs and test active movements.</p>
+                <div class="station-action">
+                  <span>Enter Yard</span>
+                  <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </div>
               </div>
             </div>
 
-            <!-- Station 2: Thread Master -->
-            <div onclick="enterStation('cloth')" class="cartoon-card interactive station-card">
-              <div class="station-meta">
-                <span class="station-number">Yard 2</span>
-                <span id="badge-cloth" class="station-status-badge">Unlocked</span>
-              </div>
-              <h3>Thread Master</h3>
-              <p>Connect stitch points across the torn gap. Keep spacing even for smooth closures.</p>
-              <div class="station-action">
-                <span>Enter Yard</span>
+            <!-- Transition Button centered at the bottom -->
+            <div class="transition-container">
+              <button id="btn-gallery-transition" onclick="transitionToGallery()" class="cartoon-btn primary" disabled>
+                <span>Enter Tool Match</span>
                 <i data-lucide="arrow-right" class="w-4 h-4"></i>
-              </div>
-            </div>
-
-            <!-- Station 3: Bamboo Maze -->
-            <div onclick="enterStation('bamboo')" class="cartoon-card interactive station-card">
-              <div class="station-meta">
-                <span class="station-number">Yard 3</span>
-                <span id="badge-bamboo" class="station-status-badge">Unlocked</span>
-              </div>
-              <h3>Bamboo Maze</h3>
-              <p>Guide Straight, Curved, or Hooked probes. Collect golden lotuses and avoid sparks.</p>
-              <div class="station-action">
-                <span>Enter Yard</span>
-                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-              </div>
-            </div>
-
-            <!-- Station 4: Wrap Race -->
-            <div onclick="enterStation('doll')" class="cartoon-card interactive station-card">
-              <div class="station-meta">
-                <span class="station-number">Yard 4</span>
-                <span id="badge-doll" class="station-status-badge">Unlocked</span>
-              </div>
-              <h3>Wrap Race</h3>
-              <p>Wrap linen doll joints and test active movements. Secure wraps, or see them slip!</p>
-              <div class="station-action">
-                <span>Enter Yard</span>
-                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-              </div>
+              </button>
             </div>
           </div>
         </section>
-        
-        <!-- Right panel: Progress summary -->
-        <aside class="right-panel">
-          <div class="cartoon-card progress-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-              <h3 class="panel-section-title font-cinzel"><i data-lucide="trophy" class="w-4 h-4"></i> Badge Shelf</h3>
-              <div id="courtyard-progress-text" class="progress-headline font-cinzel">0 / 4 Yards Complete</div>
-              <p style="font-size: 0.75rem; color: #64748b; line-height: 1.4; margin-top: 10px;">
-                Complete all four courtyard games to unlock the Gurukul Tool Match challenge.
-              </p>
-              
-              <div id="shelf-badges-grid" class="shelf-badges-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px;">
-                <div id="shelf-badge-gourd" class="shelf-badge locked"><i data-lucide="circle-dot"></i><span>Gourd Popper</span></div>
-                <div id="shelf-badge-cloth" class="shelf-badge locked"><i data-lucide="activity"></i><span>Thread Master</span></div>
-                <div id="shelf-badge-bamboo" class="shelf-badge locked"><i data-lucide="compass"></i><span>Maze Explorer</span></div>
-                <div id="shelf-badge-doll" class="shelf-badge locked"><i data-lucide="heart"></i><span>Wrap Expert</span></div>
-              </div>
-            </div>
-            
-            <button id="btn-gallery-transition" onclick="transitionToGallery()" class="cartoon-btn primary" disabled style="width: 100%; justify-content: center;">
-              <span>Enter Tool Match</span>
-              <i data-lucide="arrow-right" class="w-4 h-4"></i>
-            </button>
-          </div>
-        </aside>
       </div>
     </div>
 

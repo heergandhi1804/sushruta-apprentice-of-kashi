@@ -23,7 +23,7 @@ Step into the shoes of an observer at the ancient Kashi Gurukul. To advance to a
 The project is built entirely on zero-dependency, vanilla web technologies:
 
 * 📄 **`index.html`** — Holds the structural layout for all game screens, prologue, tool drawers, dialogs, and the interactive Sticker Book.
-* 🎨 **`style.css`** — Features a premium, customized dark theme withOutfit/Cinzel typography, cartoon-card styling, HSL color palettes, responsive flex/grid panels, and smooth micro-animations.
+* 🎨 **`style.css`** — Features a premium, customized light, warm parchment theme with Outfit/Cinzel typography, cartoon-card styling, HSL color palettes, responsive layouts, and smooth micro-animations.
 * 🖌️ **`canvas.js`** — Handles HTML5 canvas drawing, collision detection, stroke physics, and interactive drag-and-drop gameplay.
 * ⚙️ **`game.js`** — Manages game states, event routing, patient diagnosis telemetry, sticker unlocking logic, and level transitions.
 

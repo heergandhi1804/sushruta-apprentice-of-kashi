@@ -1129,19 +1129,19 @@ function setupLevel3Scenarios() {
   document.getElementById('badge-bamboo').textContent = "Scenario C";
   document.getElementById('badge-doll').textContent = "Scenario D";
 
-  const hGourd = document.querySelector('#badge-gourd + h3');
+  const hGourd = document.getElementById('badge-gourd').closest('.station-card').querySelector('h3');
   hGourd.textContent = "The Hand Potter";
   hGourd.nextElementSibling.textContent = "Goal: Potter requires wrist flexibility. Balance tension.";
 
-  const hCloth = document.querySelector('#badge-cloth + h3');
+  const hCloth = document.getElementById('badge-cloth').closest('.station-card').querySelector('h3');
   hCloth.textContent = "The Carpenter";
   hCloth.nextElementSibling.textContent = "Goal: Carpenter requires palm load strength. High tension support.";
 
-  const hBamboo = document.querySelector('#badge-bamboo + h3');
+  const hBamboo = document.getElementById('badge-bamboo').closest('.station-card').querySelector('h3');
   hBamboo.textContent = "The Temple Dancer";
   hBamboo.nextElementSibling.textContent = "Goal: Dancer requires smooth cosmetic healing. Balanced tension.";
 
-  const hDoll = document.querySelector('#badge-doll + h3');
+  const hDoll = document.getElementById('badge-doll').closest('.station-card').querySelector('h3');
   hDoll.textContent = "The Forest Messenger";
   hDoll.nextElementSibling.textContent = "Goal: Messenger requires fast repair for trail treks. Balanced speed.";
 
