@@ -274,7 +274,8 @@ const GourdLab = {
   dragPoints: [],
   outcome: "",
   squashY: 0,
-  bendAngle: 0
+  bendAngle: 0,
+  matchedItems: [] // track successfully matched items: 'soft', 'thick', 'melon'
 };
 
 function initGourdLab() {
@@ -287,6 +288,7 @@ function initGourdLab() {
   GourdLab.bendAngle = 0;
   
   document.getElementById('gourd-mentor-tip').textContent = "Observe item thickness first.";
+  updateGourdUI();
   drawGourdScene(ctx, canvas);
 
   canvas.onmousedown = (e) => {
@@ -349,21 +351,74 @@ function evaluateGourdPuncture() {
   let tip = "";
 
   if (mat === 'soft') {
-    if (ndl === 'curved') { word = "SMOOTH!"; tip = "Curved slides through soft skin."; Sound.success(); }
-    else if (ndl === 'straight') { word = "POP!"; tip = "Straight needles pop soft items quickly."; Sound.pierce(); }
+    if (ndl === 'curved') {
+      word = "SMOOTH!";
+      tip = "Curved slides through soft skin.";
+      Sound.success();
+      recordGourdMatch('soft');
+    }
+    else if (ndl === 'straight') {
+      word = "PUNCTURED!";
+      tip = "Straight needles puncture soft items quickly.";
+      Sound.pierce();
+      recordGourdMatch('soft');
+    }
     else { word = "TEAR!"; tip = "Triangular tips cut soft tissue too easily."; Sound.bump(); }
   } else if (mat === 'thick') {
-    if (ndl === 'curved') { word = "STUCK!"; tip = "Curved needles struggle with thickness."; Sound.bump(); GourdLab.squashY = 15; }
+    if (ndl === 'curved') { word = "STUCK!"; tip = "Curved needles struggle with thickness."; Sound.bump(); GourdLab.squashY = 12; }
     else if (ndl === 'straight') { word = "BENT!"; tip = "Straight needles bend under heavy pressure."; Sound.bump(); GourdLab.bendAngle = 0.5; }
-    else { word = "POP!"; tip = "Triangular needles slice thick fibers cleanly."; Sound.pierce(); }
+    else {
+      word = "PUNCTURED!";
+      tip = "Triangular needles puncture thick skins cleanly.";
+      Sound.pierce();
+      recordGourdMatch('thick');
+    }
   } else { // melon
-    if (ndl === 'curved') { word = "SMOOTH!"; tip = "Curved glides along melon roundness."; Sound.success(); }
+    if (ndl === 'curved') {
+      word = "SMOOTH!";
+      tip = "Curved glides along melon roundness.";
+      Sound.success();
+      recordGourdMatch('melon');
+    }
     else if (ndl === 'straight') { word = "BENT!"; tip = "Straight needle bends against melon curves."; Sound.bump(); GourdLab.bendAngle = -0.4; }
     else { word = "TEAR!"; tip = "Triangular edges split brittle melons."; Sound.bump(); }
   }
 
   GourdLab.outcome = word;
   document.getElementById('gourd-mentor-tip').textContent = tip;
+}
+
+function recordGourdMatch(item) {
+  if (!GourdLab.matchedItems.includes(item)) {
+    GourdLab.matchedItems.push(item);
+  }
+  updateGourdUI();
+}
+
+function updateGourdUI() {
+  const softEl = document.getElementById('btn-mat-soft');
+  const thickEl = document.getElementById('btn-mat-thick');
+  const melonEl = document.getElementById('btn-mat-melon');
+  
+  if (softEl) softEl.textContent = "Soft Gourd" + (GourdLab.matchedItems.includes('soft') ? " ✓" : "");
+  if (thickEl) thickEl.textContent = "Thick Gourd" + (GourdLab.matchedItems.includes('thick') ? " ✓" : "");
+  if (melonEl) melonEl.textContent = "Curved Melon" + (GourdLab.matchedItems.includes('melon') ? " ✓" : "");
+  
+  const progressEl = document.getElementById('gourd-matching-progress');
+  if (progressEl) {
+    progressEl.textContent = `Matched: ${GourdLab.matchedItems.length} / 3 Items`;
+  }
+  
+  const completeBtn = document.getElementById('btn-complete-gourd');
+  if (completeBtn) {
+    if (GourdLab.matchedItems.length === 3) {
+      completeBtn.disabled = false;
+      completeBtn.style.animation = "pulse 1.5s infinite";
+    } else {
+      completeBtn.disabled = true;
+      completeBtn.style.animation = "";
+    }
+  }
 }
 
 // ------------------------------------------

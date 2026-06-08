@@ -192,11 +192,14 @@
               </div>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+              <span id="gourd-matching-progress" style="font-size: 0.68rem; font-weight: 800; color: var(--color-teal); text-align: center; display: block; border: 1.5px dashed var(--color-border); padding: 6px; border-radius: 6px;">
+                Matched: 0 / 3 Items
+              </span>
               <button onclick="resetGourdLab()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
                 <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset
               </button>
-              <button onclick="completeStation('gourd')" class="cartoon-btn primary" style="width: 100%; justify-content: center;">
+              <button id="btn-complete-gourd" onclick="completeStation('gourd')" class="cartoon-btn primary" disabled style="width: 100%; justify-content: center;">
                 Complete Challenge
               </button>
             </div>
