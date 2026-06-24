@@ -543,211 +543,215 @@ function drawGourdScene(ctx, canvas) {
 // YARD 2: THREAD MASTER
 // ------------------------------------------
 function drawClothScene(ctx, canvas) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const midX = canvas.width / 2;
-
-  // Background
-  ctx.fillStyle = '#faf9f5';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  ctx.strokeStyle = '#eae6dc';
-  ctx.lineWidth = 1;
-  for (let x = 0; x < canvas.width; x += 15) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-  }
-  for (let y = 0; y < canvas.height; y += 15) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-  }
-
-  // Draw cloth tear gap
-  ctx.fillStyle = '#f5f5f4';
-  ctx.fillRect(midX - 12, 0, 24, canvas.height);
-  ctx.strokeStyle = '#292524';
-  ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.moveTo(midX - 12, 0); ctx.lineTo(midX - 12, canvas.height); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(midX + 12, 0); ctx.lineTo(midX + 12, canvas.height); ctx.stroke();
-
-  // Draw tension lines based on variables
+  const W = canvas.width, H = canvas.height, midX = W / 2;
+  const cfg = WOUNDS[ClothBoard.woundType];
   const tension = ClothBoard.tension;
-  if (tension > 75 && ClothBoard.stitches.length > 0) {
-    // Red wrinkled lines
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
-    ctx.lineWidth = 2;
-    ClothBoard.stitches.forEach(st => {
-      ctx.beginPath();
-      ctx.moveTo(st.x1, st.y1 - 10);
-      ctx.lineTo(st.x1 - 15, st.y1);
-      ctx.lineTo(st.x1, st.y1 + 10);
-      ctx.stroke();
+  ctx.clearRect(0, 0, W, H);
 
-      ctx.beginPath();
-      ctx.moveTo(st.x2, st.y2 - 10);
-      ctx.lineTo(st.x2 + 15, st.y2);
-      ctx.lineTo(st.x2, st.y2 + 10);
-      ctx.stroke();
+  // parchment plate
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#f6ecd6'); bg.addColorStop(1, '#ead9b6');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(120,80,30,0.35)'; ctx.lineWidth = 3; ctx.strokeRect(10, 10, W - 20, H - 20);
+  ctx.fillStyle = 'rgba(120,80,30,0.6)'; ctx.font = 'bold 10px Cinzel'; ctx.textAlign = 'left';
+  ctx.fillText(`PLATE — ${cfg.name.toUpperCase()}`, 22, 30);
+
+  // skin band (sepia illustration tone)
+  const skinW = W * 0.5, x0 = midX - skinW / 2;
+  const sg = ctx.createLinearGradient(x0, 0, x0 + skinW, 0);
+  sg.addColorStop(0, '#e8c39e'); sg.addColorStop(0.5, '#f0d2b0'); sg.addColorStop(1, '#e0b489');
+  ctx.fillStyle = sg; ctx.fillRect(x0, H * 0.12, skinW, H * 0.76);
+  ctx.strokeStyle = '#9a6b3f'; ctx.lineWidth = 2; ctx.strokeRect(x0, H * 0.12, skinW, H * 0.76);
+
+  // tension-driven lip geometry
+  const part = tension < 30 ? 9 : tension > 75 ? -4 : 2;
+  const drawLip = (sign) => {
+    ctx.beginPath();
+    ClothBoard.anchors.forEach((a, i) => {
+      const ex = sign < 0 ? a.lx - part : a.rx + part;
+      i ? ctx.lineTo(ex, a.y) : ctx.moveTo(ex, a.y);
     });
+    ctx.lineWidth = 3; ctx.strokeStyle = '#8a4b2a'; ctx.stroke();
+  };
+
+  if (cfg.shallow) {
+    // scraped: stippled abrasion patch, no deep lips
+    ctx.fillStyle = 'rgba(190,90,60,0.18)';
+    ctx.fillRect(midX - 22, H * 0.2, 44, H * 0.6);
+    ctx.fillStyle = 'rgba(150,60,40,0.5)';
+    for (let i = 0; i < 90; i++) ctx.fillRect(midX - 20 + Math.random() * 40, H * 0.2 + Math.random() * H * 0.6, 1.6, 1.6);
+  } else {
+    // wound channel between lips
+    ctx.fillStyle = '#7a3b22';
+    ctx.beginPath();
+    ClothBoard.anchors.forEach((a, i) => { const x = a.lx - part; i ? ctx.lineTo(x, a.y) : ctx.moveTo(x, a.y); });
+    for (let i = ClothBoard.anchors.length - 1; i >= 0; i--) { const a = ClothBoard.anchors[i]; ctx.lineTo(a.rx + part, a.y); }
+    ctx.closePath(); ctx.fill();
+    drawLip(-1); drawLip(1);
+    // minimal blood dots
+    ctx.fillStyle = 'rgba(150,30,30,0.55)';
+    ClothBoard.anchors.filter((_, i) => i % 3 === 0).forEach(a => { ctx.beginPath(); ctx.arc(midX, a.y, 1.8, 0, 2 * Math.PI); ctx.fill(); });
   }
 
-  // Draw stitches
-  ClothBoard.stitches.forEach(st => {
-    // Stitch anchor holes
-    ctx.fillStyle = '#292524';
-    ctx.beginPath(); ctx.arc(st.x1, st.y1, 4, 0, 2 * Math.PI); ctx.fill();
-    ctx.beginPath(); ctx.arc(st.x2, st.y2, 4, 0, 2 * Math.PI); ctx.fill();
+  // pucker wrinkles when too tight (only with stitches)
+  if (tension > 75 && ClothBoard.placed.length) {
+    ctx.strokeStyle = 'rgba(200,60,60,0.4)'; ctx.lineWidth = 1.5;
+    ClothBoard.placed.forEach(i => { const a = ClothBoard.anchors[i]; for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(a.lx + s * 0, a.y - 7); ctx.lineTo(midX + s * 22, a.y); ctx.lineTo(a.lx, a.y + 7); ctx.stroke(); } });
+  }
 
-    // Suture thread line
-    ctx.lineWidth = 4.5;
-    // color-code thread glow: tight = red, loose = yellow, balanced = green
-    ctx.strokeStyle = tension > 75 ? '#ef4444' : (tension < 30 ? '#eab308' : '#10b981');
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(st.x1, st.y1);
-    ctx.bezierCurveTo(st.x1 + 6, st.y1 - 8, st.x2 - 6, st.y2 - 8, st.x2, st.y2);
-    ctx.stroke();
-
-    // Force arrows
-    ctx.strokeStyle = '#ea580c';
-    ctx.lineWidth = 2;
-    const arrowLen = (tension / 100) * 15;
-    drawArrow(ctx, st.x1, st.y1, st.x1 + arrowLen, st.y1);
-    drawArrow(ctx, st.x2, st.y2, st.x2 - arrowLen, st.y2);
+  // anchor dots (open = available, filled = stitched)
+  ClothBoard.anchors.forEach((a, i) => {
+    const on = ClothBoard.placed.includes(i);
+    [a.lx, a.rx].forEach(x => {
+      ctx.beginPath(); ctx.arc(x, a.y, 4, 0, 2 * Math.PI);
+      ctx.fillStyle = on ? '#1f2937' : '#fff'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#1f2937'; ctx.stroke();
+    });
   });
 
-  // Combo count text
-  if (ClothBoard.combo > 0) {
-    ctx.fillStyle = 'var(--color-teal)';
-    ctx.font = 'bold 12px Outfit';
-    ctx.fillText(`Uniform Spacing Combo x${ClothBoard.combo}!`, 16, 25);
+  // placed sutures, colored by tension band
+  ClothBoard.placed.forEach(i => {
+    const a = ClothBoard.anchors[i];
+    ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.strokeStyle = tension > 75 ? '#ef4444' : tension < 30 ? '#eab308' : '#10b981';
+    ctx.beginPath(); ctx.moveTo(a.lx, a.y); ctx.quadraticCurveTo(midX, a.y - 9, a.rx, a.y); ctx.stroke();
+  });
+
+  // OPTIMUM GUIDE — only after analysis (discovery, never before)
+  if (ClothBoard.analyzed) {
+    ctx.fillStyle = 'rgba(13,148,136,0.10)'; ctx.fillRect(x0, H * 0.12, skinW, H * 0.76);
+    const optRows = idealRows(cfg.rows, cfg.optimum);
+    optRows.forEach(i => { const a = ClothBoard.anchors[i]; ctx.strokeStyle = 'rgba(13,148,136,0.9)'; ctx.setLineDash([5, 4]); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(a.lx, a.y); ctx.lineTo(a.rx, a.y); ctx.stroke(); ctx.setLineDash([]); });
+    ctx.fillStyle = '#0f766e'; ctx.font = 'bold 11px Outfit'; ctx.textAlign = 'center';
+    ctx.fillText(`Optimum: ${cfg.optimum} even stitches · balanced tension`, midX, H * 0.95);
   }
 
-  // Active stitching line
-  if (ClothBoard.isDrawing) {
-    ctx.lineWidth = 2.5;
-    ctx.strokeStyle = 'var(--color-pink)';
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(ClothBoard.startX, ClothBoard.startY);
-    ctx.lineTo(ClothBoard.curX, ClothBoard.curY);
-    ctx.stroke();
-    ctx.setLineDash([]);
+  // hint overlay (ghost ideal stitches) when hint on, before analysis
+  if (typeof GameState !== 'undefined' && (GameState.hints?.['cloth'] || 0) >= 1 && !ClothBoard.analyzed) {
+    idealRows(cfg.rows, cfg.optimum).forEach(i => { const a = ClothBoard.anchors[i]; ctx.strokeStyle = 'rgba(13,148,136,0.35)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(a.lx, a.y); ctx.lineTo(a.rx, a.y); ctx.stroke(); ctx.setLineDash([]); });
   }
+}
+
+// evenly distributed row indices for the optimum count
+function idealRows(rows, count) {
+  if (count <= 1) return [Math.floor(rows / 2)];
+  const out = []; for (let k = 0; k < count; k++) out.push(Math.round(k * (rows - 1) / (count - 1)));
+  return out;
 }
 
 // ------------------------------------------
 // YARD 3: BAMBOO MAZE
 // ------------------------------------------
+
+// shared channel centerline (1.5 gentle cycles), relative to canvas
+function bambooCenterY(x, canvas) {
+  const H = canvas.height || 360;
+  return H / 2 + H * 0.20 * Math.sin((x / (canvas.width || 600)) * Math.PI * 2 * 1.5);
+}
+
+// a real lotus: layered petals + golden seed center
+function drawLotus(ctx, x, y, scale, t) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale); ctx.rotate(Math.sin(t || 0) * 0.05);
+  const petal = (len, wid, fill, stroke) => {
+    ctx.beginPath(); ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(wid, -len * 0.55, 0, -len);
+    ctx.quadraticCurveTo(-wid, -len * 0.55, 0, 0); ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 0.8; ctx.strokeStyle = stroke; ctx.stroke();
+  };
+  for (let i = 0; i < 8; i++) { ctx.save(); ctx.rotate(i * Math.PI / 4 + Math.PI / 8); petal(13, 5, '#f9a8d4', '#db2777'); ctx.restore(); }
+  for (let i = 0; i < 6; i++) { ctx.save(); ctx.rotate(i * Math.PI / 3); petal(11, 4.5, '#fde7f0', '#ec4899'); ctx.restore(); }
+  const g = ctx.createRadialGradient(0, 0, 1, 0, 0, 5); g.addColorStop(0, '#fde68a'); g.addColorStop(1, '#d97706');
+  ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, 2 * Math.PI); ctx.fillStyle = g; ctx.fill();
+  ctx.fillStyle = '#92400e';
+  for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; ctx.beginPath(); ctx.arc(Math.cos(a) * 2, Math.sin(a) * 2, 0.7, 0, 2 * Math.PI); ctx.fill(); }
+  ctx.restore();
+}
+
 function drawBambooScene(ctx, canvas) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const W = canvas.width, H = canvas.height, t = performance.now() / 600;
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  if (BambooTunnel.shake > 0) { ctx.translate((Math.random() - .5) * BambooTunnel.shake, (Math.random() - .5) * BambooTunnel.shake); BambooTunnel.shake -= 1; }
 
-  // Background slate
-  ctx.fillStyle = '#f5f5f4';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  ctx.strokeStyle = '#e7e5e4';
-  ctx.lineWidth = 1;
-  for (let x = 0; x < canvas.width; x += 30) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-  }
+  // warm parchment surround
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#f7efdf'); bg.addColorStop(1, '#efe2c8');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-  // Draw curved stalks
-  const sineFreq = (Math.PI * 2) / canvas.width;
-  ctx.fillStyle = '#a7f3d0';
-  ctx.strokeStyle = '#059669';
-  ctx.lineWidth = 3.5;
+  const lumen = H * 0.12, wall = H * 0.14;
+  const pts = []; for (let x = 0; x <= W; x += 6) pts.push({ x, y: bambooCenterY(x, canvas) });
 
-  // Upper Stalk
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  for (let x = 0; x <= canvas.width; x += 10) {
-    const y = 150 + 60 * Math.sin(x * sineFreq) - 30;
-    ctx.lineTo(x, y);
-  }
-  ctx.lineTo(canvas.width, 0);
-  ctx.closePath();
-  ctx.fill(); ctx.stroke();
-
-  // Lower Stalk
-  ctx.beginPath();
-  ctx.moveTo(0, canvas.height);
-  for (let x = 0; x <= canvas.width; x += 10) {
-    const y = 150 + 60 * Math.sin(x * sineFreq) + 30;
-    ctx.lineTo(x, y);
-  }
-  ctx.lineTo(canvas.width, canvas.height);
-  ctx.closePath();
-  ctx.fill(); ctx.stroke();
-
-  // START & EXIT
-  ctx.fillStyle = '#10b981';
-  ctx.beginPath(); ctx.arc(45, 150, 18, 0, 2*Math.PI); ctx.fill();
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 8px Outfit';
-  ctx.textAlign = 'center';
-  ctx.fillText("START", 45, 153);
-
-  ctx.fillStyle = 'var(--color-pink)';
-  ctx.beginPath(); ctx.arc(canvas.width - 45, 150, 18, 0, 2*Math.PI); ctx.fill();
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText("EXIT", canvas.width - 45, 153);
-
-  // Draw Lotuses
-  BambooTunnel.lotuses.forEach(l => {
-    if (!l.collected) {
-      // Golden lotus star
-      ctx.fillStyle = '#fbbf24';
-      ctx.strokeStyle = '#d97706';
-      ctx.lineWidth = 1.5;
-      ctx.save();
-      ctx.translate(l.x, l.y);
-      ctx.beginPath();
-      for (let i = 0; i < 5; i++) {
-        ctx.lineTo(0, -10);
-        ctx.rotate(Math.PI / 5);
-        ctx.lineTo(0, -4);
-        ctx.rotate(Math.PI / 5);
-      }
-      ctx.closePath();
-      ctx.fill(); ctx.stroke();
-      ctx.restore();
-    }
-  });
-
-  // Draw Probe spark particles
-  if (BambooTunnel.sparkTimer > 0) {
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 2;
-    const sx = BambooTunnel.sparkX;
-    const sy = BambooTunnel.sparkY;
+  // bamboo wall bands offset from centerline
+  const bambooWall = (sign) => {
     ctx.beginPath();
-    ctx.moveTo(sx - 10, sy - 10); ctx.lineTo(sx + 10, sy + 10);
-    ctx.moveTo(sx + 10, sy - 10); ctx.lineTo(sx - 10, sy + 10);
-    ctx.stroke();
+    pts.forEach((p, i) => { const y = p.y + sign * (lumen + wall); i ? ctx.lineTo(p.x, y) : ctx.moveTo(p.x, y); });
+    for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; ctx.lineTo(p.x, p.y + sign * lumen); }
+    ctx.closePath();
+    const wg = ctx.createLinearGradient(0, 0, 0, H);
+    wg.addColorStop(0, '#3f6212'); wg.addColorStop(0.5, '#65a30d'); wg.addColorStop(1, '#365314');
+    ctx.fillStyle = wg; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = '#2f4310'; ctx.stroke();
+    // node rings every ~70px
+    ctx.strokeStyle = 'rgba(20,40,8,0.55)'; ctx.lineWidth = 2.5;
+    for (let x = 40; x < W; x += 70) {
+      const cy = bambooCenterY(x, canvas);
+      ctx.beginPath(); ctx.moveTo(x, cy + sign * lumen); ctx.lineTo(x, cy + sign * (lumen + wall)); ctx.stroke();
+    }
+    // glossy highlight near lumen edge
+    ctx.beginPath();
+    pts.forEach((p, i) => { const y = p.y + sign * (lumen + 3); i ? ctx.lineTo(p.x, y) : ctx.moveTo(p.x, y); });
+    ctx.strokeStyle = 'rgba(190,242,100,0.6)'; ctx.lineWidth = 2; ctx.stroke();
+  };
+  bambooWall(-1); bambooWall(1);
+
+  // inner channel floor (soft inner shadow — cutaway tube)
+  ctx.beginPath();
+  pts.forEach((p, i) => { const y = p.y - lumen; i ? ctx.lineTo(p.x, y) : ctx.moveTo(p.x, y); });
+  for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i].x, pts[i].y + lumen);
+  ctx.closePath();
+  const fg = ctx.createLinearGradient(0, H / 2 - lumen, 0, H / 2 + lumen);
+  fg.addColorStop(0, 'rgba(0,0,0,0.10)'); fg.addColorStop(0.5, 'rgba(255,255,255,0.06)'); fg.addColorStop(1, 'rgba(0,0,0,0.10)');
+  ctx.fillStyle = fg; ctx.fill();
+
+  // hint corridor (faint centerline when hint on)
+  if (typeof GameState !== 'undefined' && (GameState.hints?.['bamboo'] || 0) >= 1) {
+    ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+    ctx.strokeStyle = 'rgba(13,148,136,0.35)'; ctx.lineWidth = 3; ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // START / EXIT pads
+  const sy = bambooCenterY(40, canvas), ey = bambooCenterY(W, canvas);
+  ctx.fillStyle = '#10b981'; ctx.beginPath(); ctx.arc(40, sy, 16, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 8px Outfit'; ctx.textAlign = 'center'; ctx.fillText('START', 40, sy + 3);
+  ctx.fillStyle = '#db2777'; ctx.beginPath(); ctx.arc(W - 40, ey, 16, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.fillText('EXIT', W - 40, ey + 3);
+
+  // lotuses (real layered flowers)
+  BambooTunnel.lotuses.forEach(l => { if (!l.collected) drawLotus(ctx, l.x, l.y, 1, t + l.x); });
+
+  // curved-probe smooth trail
+  if (GameState.activeProbe === 'curved' && BambooTunnel.trail.length > 1) {
+    ctx.beginPath(); BambooTunnel.trail.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+    ctx.strokeStyle = 'rgba(20,184,166,0.45)'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke();
+  }
+
+  // sparks
+  if (BambooTunnel.sparkTimer > 0) {
+    const { sparkX: sx, sparkY: sxy } = BambooTunnel; ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 3) { ctx.beginPath(); ctx.moveTo(sx, sxy); ctx.lineTo(sx + Math.cos(a) * 11, sxy + Math.sin(a) * 11); ctx.stroke(); }
     BambooTunnel.sparkTimer--;
   }
 
-  // Draw Probe circle base
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#292524';
-  ctx.lineWidth = 3;
+  // probe (metal base + shape-specific tip)
+  const px = BambooTunnel.probeX, py = BambooTunnel.probeY;
+  ctx.fillStyle = '#e5e7eb'; ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(px, py, BambooTunnel.probeRadius, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+  ctx.save(); ctx.translate(px, py); ctx.strokeStyle = '#be185d'; ctx.lineWidth = 3; ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.arc(BambooTunnel.probeX, BambooTunnel.probeY, BambooTunnel.probeRadius, 0, 2 * Math.PI);
-  ctx.fill(); ctx.stroke();
+  if (GameState.activeProbe === 'straight') { ctx.moveTo(-12, 0); ctx.lineTo(13, 0); }
+  else if (GameState.activeProbe === 'curved') { ctx.arc(2, 0, 9, -Math.PI / 2, Math.PI / 2); }
+  else { ctx.moveTo(-10, 6); ctx.lineTo(6, 6); ctx.quadraticCurveTo(13, 6, 12, -3); }
+  ctx.stroke(); ctx.restore();
 
-  // Custom Probe Shapes
-  ctx.save();
-  ctx.translate(BambooTunnel.probeX, BambooTunnel.probeY);
-  ctx.strokeStyle = 'var(--color-pink)';
-  ctx.lineWidth = 2.5;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  if (GameState.activeProbe === 'straight') {
-    ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
-  } else if (GameState.activeProbe === 'curved') {
-    ctx.arc(0, 0, 8, -Math.PI / 2, Math.PI / 2);
-  } else { // hooked
-    ctx.moveTo(-8, 5); ctx.lineTo(4, 5); ctx.lineTo(8, -2);
-  }
-  ctx.stroke();
   ctx.restore();
 }
 

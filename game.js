@@ -489,105 +489,119 @@ function updateGourdUI() {
 // ------------------------------------------
 // YARD 2: THREAD MASTER
 // ------------------------------------------
+const WOUNDS = {
+  clean:  { name:'Clean Cut',         rows:5, optimum:3, optTension:[40,65], jitter:0,
+            lesson:'Clean edges close with FEW, evenly spaced stitches.' },
+  jagged: { name:'Jagged Tear',        rows:7, optimum:5, optTension:[40,60], jitter:14,
+            lesson:'Irregular edges need MORE support points to align.' },
+  scrape: { name:'Scraped / Shallow',  rows:6, optimum:1, optTension:[20,45], jitter:0, shallow:true,
+            lesson:'Surface grazes need protection, not many stitches.' }
+};
+
 const ClothBoard = {
-  stitches: [],
-  isDrawing: false,
-  startX: 0, startY: 0,
-  curX: 0, curY: 0,
+  woundType: 'clean',
+  anchors: [],      // [{y, lx, rx}] computed per wound on init
+  placed: [],       // indices of anchors with a stitch
   tension: 50,
-  combo: 0
+  analyzed: false
 };
 
 function initClothBoard() {
   const canvas = document.getElementById('canvas-cloth');
   const ctx = canvas.getContext('2d');
-  ClothBoard.stitches = [];
-  ClothBoard.isDrawing = false;
-  ClothBoard.combo = 0;
-  
+  canvas.width = canvas.clientWidth || 600;
+  canvas.height = canvas.clientHeight || 360;
+
+  const W = canvas.width, H = canvas.height, midX = W / 2;
+  const cfg = WOUNDS[ClothBoard.woundType];
+  ClothBoard.placed = [];
+  ClothBoard.analyzed = false;
+
+  // anchor rows evenly spaced down the wound; jagged offsets left/right lips
+  ClothBoard.anchors = [];
+  const top = H * 0.18, bot = H * 0.82, step = (bot - top) / (cfg.rows - 1);
+  for (let i = 0; i < cfg.rows; i++) {
+    const y = top + i * step;
+    const j = cfg.jitter ? (Math.sin(i * 2.3) * cfg.jitter) : 0;
+    ClothBoard.anchors.push({ y, lx: midX - 16 - Math.abs(j), rx: midX + 16 + Math.abs(j) });
+  }
+
   document.getElementById('cloth-stitch-count').textContent = 0;
-  document.getElementById('cloth-combo-streak').textContent = 0;
-  document.getElementById('cloth-mentor-tip').textContent = "Too much pull wrinkles.";
-  
+  document.getElementById('cloth-mentor-tip').textContent =
+    `${cfg.name}: place stitches by clicking the anchor dots. Find the optimum — more is not always better.`;
+
   drawClothScene(ctx, canvas);
 
   canvas.onmousedown = (e) => {
-    const rect = canvas.getBoundingClientRect();
-    ClothBoard.startX = e.clientX - rect.left;
-    ClothBoard.startY = e.clientY - rect.top;
-    ClothBoard.isDrawing = true;
-  };
-
-  canvas.onmousemove = (e) => {
-    if (!ClothBoard.isDrawing) return;
-    const rect = canvas.getBoundingClientRect();
-    ClothBoard.curX = e.clientX - rect.left;
-    ClothBoard.curY = e.clientY - rect.top;
-    drawClothScene(ctx, canvas);
-  };
-
-  canvas.onmouseup = () => {
-    if (ClothBoard.isDrawing) {
-      ClothBoard.isDrawing = false;
-      const midX = canvas.width / 2;
-      const crossed = (ClothBoard.startX < midX && ClothBoard.curX > midX) || (ClothBoard.startX > midX && ClothBoard.curX < midX);
-
-      if (crossed && Math.abs(ClothBoard.startX - ClothBoard.curX) > 25) {
-        Sound.pierce();
-        
-        // Calculate spacing combo
-        let spacingOkay = true;
-        if (ClothBoard.stitches.length > 0) {
-          const lastStitch = ClothBoard.stitches[ClothBoard.stitches.length - 1];
-          const distY = Math.abs(ClothBoard.startY - lastStitch.y1);
-          // Ideal spacing is 35px - 55px
-          if (distY >= 30 && distY <= 60) {
-            ClothBoard.combo++;
-          } else {
-            ClothBoard.combo = 0;
-          }
-        }
-        
-        ClothBoard.stitches.push({
-          x1: ClothBoard.startX, y1: ClothBoard.startY,
-          x2: ClothBoard.curX, y2: ClothBoard.curY
-        });
-
-        document.getElementById('cloth-stitch-count').textContent = ClothBoard.stitches.length;
-        document.getElementById('cloth-combo-streak').textContent = ClothBoard.combo;
-
-        // Mentor update
-        if (ClothBoard.tension > 75) {
-          document.getElementById('cloth-mentor-tip').textContent = "Too tight! Red wrinkles appear.";
-          Sound.bump();
-        } else if (ClothBoard.tension < 30) {
-          document.getElementById('cloth-mentor-tip').textContent = "Too loose! Suture loops gap.";
-        } else {
-          document.getElementById('cloth-mentor-tip').textContent = "Balanced pull approximation holds smoothly.";
-          if (ClothBoard.combo > 0) Sound.success();
-        }
-      }
+    if (ClothBoard.analyzed) return;
+    const r = canvas.getBoundingClientRect();
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    let best = -1, bd = 26;
+    ClothBoard.anchors.forEach((a, i) => {
+      const d = Math.abs(my - a.y) + Math.abs(mx - (a.lx + a.rx) / 2) * 0.3;
+      if (d < bd) { bd = d; best = i; }
+    });
+    if (best >= 0) {
+      const at = ClothBoard.placed.indexOf(best);
+      if (at >= 0) { ClothBoard.placed.splice(at, 1); Sound.bump(); }
+      else { ClothBoard.placed.push(best); Sound.pierce(); }
+      document.getElementById('cloth-stitch-count').textContent = ClothBoard.placed.length;
       drawClothScene(ctx, canvas);
     }
   };
+  canvas.onmousemove = null;
+  canvas.onmouseup = null;
+}
+
+function selectWoundType(type) {
+  Sound.click();
+  ClothBoard.woundType = type;
+  ['clean', 'jagged', 'scrape'].forEach(t =>
+    document.getElementById(`btn-wound-${t}`)?.classList.toggle('active', t === type));
+  const nameEl = document.getElementById('cloth-wound-name');
+  if (nameEl) nameEl.textContent = WOUNDS[type].name;
+  initClothBoard();
 }
 
 function updateClothTension() {
   ClothBoard.tension = parseInt(document.getElementById('cloth-tension-slider').value);
   document.getElementById('cloth-tension-val').textContent = `${ClothBoard.tension}%`;
-  
-  if (ClothBoard.stitches.length > 0) {
-    if (ClothBoard.tension > 75) {
-      document.getElementById('cloth-mentor-tip').textContent = "Too tight! Red wrinkles appear.";
-    } else if (ClothBoard.tension < 30) {
-      document.getElementById('cloth-mentor-tip').textContent = "Too loose! Suture loops gap.";
-    } else {
-      document.getElementById('cloth-mentor-tip').textContent = "Balanced pull approximation holds smoothly.";
-    }
-  }
-
   const canvas = document.getElementById('canvas-cloth');
   drawClothScene(canvas.getContext('2d'), canvas);
+}
+
+function analyzeRepair() {
+  const canvas = document.getElementById('canvas-cloth');
+  const ctx = canvas.getContext('2d');
+  const cfg = WOUNDS[ClothBoard.woundType];
+  const n = ClothBoard.placed.length;
+
+  if (ClothBoard.analyzed) { completeStation('cloth'); return; }
+
+  // spacing evenness: variance of gaps between sorted placed rows
+  const idx = [...ClothBoard.placed].sort((a, b) => a - b);
+  let evenness = 1;
+  if (idx.length > 1) {
+    const gaps = idx.slice(1).map((v, i) => v - idx[i]);
+    const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+    const varc = gaps.reduce((a, g) => a + (g - mean) ** 2, 0) / gaps.length;
+    evenness = Math.max(0, 1 - varc / 4);
+  }
+  const tOK = ClothBoard.tension >= cfg.optTension[0] && ClothBoard.tension <= cfg.optTension[1];
+  const countDelta = Math.abs(n - cfg.optimum);
+
+  let msg;
+  if (cfg.shallow && n > 2) msg = "Observation Added: extra stitches pinched this shallow graze unnecessarily.";
+  else if (ClothBoard.woundType === 'clean' && n > cfg.optimum + 1) msg = "Observation Added: more stitches did not improve this clean cut.";
+  else if (ClothBoard.woundType === 'jagged' && n < cfg.optimum) msg = "Evidence Check: this jagged wound needs more support points.";
+  else if (!tOK && ClothBoard.tension > cfg.optTension[1]) msg = "Pattern Noticed: high tension pinched and puckered the edges.";
+  else if (!tOK) msg = "Pattern Noticed: low tension left gaps between the edges.";
+  else if (countDelta === 0 && evenness > 0.6) msg = "Principle Learned: optimum means enough support, evenly placed — not maximum force.";
+  else msg = "Pattern Noticed: balanced tension and even spacing close edges without pinching.";
+
+  document.getElementById('cloth-mentor-tip').textContent = msg;
+  ClothBoard.analyzed = true;
+  drawClothScene(ctx, canvas);
 }
 
 function clearStitches() {
@@ -599,133 +613,147 @@ function clearStitches() {
 // YARD 3: BAMBOO MAZE
 // ------------------------------------------
 const BambooTunnel = {
-  probeX: 50, probeY: 150,
+  probeX: 50, probeY: 0,        // probeY set on init relative to canvas
   probeRadius: 8,
   isDragging: false,
   collisions: 0,
   smoothness: 100,
-  lotuses: [
-    {x: 200, y: 150 + 60*Math.sin(200*Math.PI*2/600), collected: false},
-    {x: 350, y: 150 + 60*Math.sin(350*Math.PI*2/600), collected: false},
-    {x: 480, y: 150 + 60*Math.sin(480*Math.PI*2/600), collected: false}
-  ],
-  sparkTimer: 0,
-  sparkX: 0, sparkY: 0
+  lotuses: [],                  // generated by spawnBambooLotuses()
+  trail: [],                    // recent positions for the smooth curved-probe trail
+  sparkTimer: 0, sparkX: 0, sparkY: 0,
+  shake: 0,                     // brief screen-shake counter on collision
+  reached: false
 };
+
+function spawnBambooLotuses() {
+  const canvas = document.getElementById('canvas-bamboo');
+  if (!canvas) return;
+  const W = canvas.width || 600, H = canvas.height || 360;
+  const lumen = H * 0.12;
+  const xs = [];
+  while (xs.length < 3) {
+    const x = 130 + Math.random() * (W - 240);
+    if (xs.every(px => Math.abs(px - x) > 90)) xs.push(x);
+  }
+  BambooTunnel.lotuses = xs.map(x => {
+    const cy = bambooCenterY(x, canvas);
+    const off = (Math.random() * 0.7 + 0.1) * lumen * (Math.random() < 0.5 ? 1 : -1);
+    return { x, y: cy + off, collected: false };
+  });
+}
 
 function initBambooTunnel() {
   const canvas = document.getElementById('canvas-bamboo');
   const ctx = canvas.getContext('2d');
+  canvas.width = canvas.clientWidth || 600;
+  canvas.height = canvas.clientHeight || 360;
+
   BambooTunnel.probeX = 50;
-  BambooTunnel.probeY = 150;
+  BambooTunnel.probeY = bambooCenterY(50, canvas);
   BambooTunnel.collisions = 0;
   BambooTunnel.smoothness = 100;
   BambooTunnel.isDragging = false;
   BambooTunnel.sparkTimer = 0;
-  
-  BambooTunnel.lotuses.forEach(l => l.collected = false);
+  BambooTunnel.shake = 0;
+  BambooTunnel.trail = [];
+  BambooTunnel.reached = false;
+  if (!BambooTunnel.lotuses.length) spawnBambooLotuses();
 
   document.getElementById('bamboo-collisions').textContent = 0;
   document.getElementById('bamboo-tokens-val').textContent = "0 / 3";
   document.getElementById('bamboo-smoothness').textContent = "100%";
-  document.getElementById('bamboo-mentor-tip').textContent = "Curved tools handle bends best.";
+  document.getElementById('bamboo-mentor-tip').textContent =
+    "Choose a probe shape, then guide the tip from START to EXIT.";
 
   drawBambooScene(ctx, canvas);
 
   canvas.onmousedown = (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const dist = Math.hypot(mx - BambooTunnel.probeX, my - BambooTunnel.probeY);
-    if (dist < BambooTunnel.probeRadius + 15) {
+    const r = canvas.getBoundingClientRect();
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    if (Math.hypot(mx - BambooTunnel.probeX, my - BambooTunnel.probeY) < BambooTunnel.probeRadius + 18)
       BambooTunnel.isDragging = true;
-    }
   };
 
   canvas.onmousemove = (e) => {
     if (!BambooTunnel.isDragging) return;
-    const rect = canvas.getBoundingClientRect();
-    let mx = e.clientX - rect.left;
-    let my = e.clientY - rect.top;
+    const r = canvas.getBoundingClientRect();
+    let mx = e.clientX - r.left, my = e.clientY - r.top;
+    const p = GameState.activeProbe;
 
-    // Movement modifications based on probe type
-    if (GameState.activeProbe === 'straight') {
-      // Straight probe slides with high horizontal momentum but is hard to adjust vertically
-      my = 0.8 * BambooTunnel.probeY + 0.2 * my; 
-    } else if (GameState.activeProbe === 'hooked') {
-      // Hooked probe is slow and drags
-      mx = 0.75 * BambooTunnel.probeX + 0.25 * mx;
-      my = 0.75 * BambooTunnel.probeY + 0.25 * my;
+    if (p === 'straight') {
+      mx = BambooTunnel.probeX + (mx - BambooTunnel.probeX) * 1.0;
+      my = BambooTunnel.probeY + (my - BambooTunnel.probeY) * 0.35;
+    } else if (p === 'curved') {
+      mx = BambooTunnel.probeX + (mx - BambooTunnel.probeX) * 0.6;
+      my = BambooTunnel.probeY + (my - BambooTunnel.probeY) * 0.6;
+    } else {
+      mx = BambooTunnel.probeX + (mx - BambooTunnel.probeX) * 0.28;
+      my = BambooTunnel.probeY + (my - BambooTunnel.probeY) * 0.28;
     }
 
-    const hit = checkBambooCollision(mx, my, canvas);
-    if (hit) {
+    if (checkBambooCollision(mx, my, canvas)) {
       BambooTunnel.collisions++;
-      BambooTunnel.sparkTimer = 8;
-      BambooTunnel.sparkX = mx;
-      BambooTunnel.sparkY = my;
+      BambooTunnel.sparkTimer = 9; BambooTunnel.sparkX = mx; BambooTunnel.sparkY = my;
+      BambooTunnel.shake = 6;
       Sound.bump();
+      BambooTunnel.smoothness = Math.max(10, 100 - BambooTunnel.collisions * 4);
       document.getElementById('bamboo-collisions').textContent = BambooTunnel.collisions;
-      BambooTunnel.smoothness = Math.max(10, 100 - BambooTunnel.collisions * 3);
       document.getElementById('bamboo-smoothness').textContent = `${BambooTunnel.smoothness}%`;
+      document.getElementById('bamboo-mentor-tip').textContent =
+        p === 'straight' ? "Straight probe is fast, but bends cause wall contact."
+        : p === 'curved' ? "Even curved tips scrape if you rush the bend — ease off."
+        : "Hooked probe needs slower, deliberate control.";
     }
 
-    BambooTunnel.probeX = mx;
-    BambooTunnel.probeY = my;
+    BambooTunnel.probeX = mx; BambooTunnel.probeY = my;
+    BambooTunnel.trail.push({ x: mx, y: my });
+    if (BambooTunnel.trail.length > 22) BambooTunnel.trail.shift();
 
-    // Check lotus tokens collection
-    // Hooked probe has 2.5x larger collection reach
-    const collectReach = GameState.activeProbe === 'hooked' ? 30 : 15;
+    const reach = (p === 'hooked') ? 32 : 16;
     BambooTunnel.lotuses.forEach(l => {
-      if (!l.collected) {
-        const d = Math.hypot(mx - l.x, my - l.y);
-        if (d < collectReach) {
-          l.collected = true;
-          Sound.success();
-          const collectedCount = BambooTunnel.lotuses.filter(x => x.collected).length;
-          document.getElementById('bamboo-tokens-val').textContent = `${collectedCount} / 3`;
-        }
+      if (!l.collected && Math.hypot(mx - l.x, my - l.y) < reach) {
+        l.collected = true; Sound.success();
+        const n = BambooTunnel.lotuses.filter(x => x.collected).length;
+        document.getElementById('bamboo-tokens-val').textContent = `${n} / 3`;
+        if (p === 'hooked')
+          document.getElementById('bamboo-mentor-tip').textContent =
+            "Hooked probe can reach lotus tokens from farther away.";
       }
     });
 
-    // Exit check
-    if (mx > canvas.width - 65 && Math.abs(my - 150) < 30) {
-      BambooTunnel.isDragging = false;
-      Sound.chime();
-      document.getElementById('bamboo-mentor-tip').textContent = "Goal reached! Click Complete Challenge to advance.";
+    const exitY = bambooCenterY(canvas.width, canvas);
+    if (!BambooTunnel.reached && mx > canvas.width - 58 && Math.abs(my - exitY) < canvas.height * 0.12) {
+      BambooTunnel.reached = true; BambooTunnel.isDragging = false; Sound.chime();
+      document.getElementById('bamboo-mentor-tip').textContent =
+        "Pattern noticed: tool shape decides how a path is best navigated. Complete to advance.";
     }
-
     drawBambooScene(ctx, canvas);
   };
 
-  canvas.onmouseup = () => {
-    BambooTunnel.isDragging = false;
-  };
+  canvas.onmouseup = () => { BambooTunnel.isDragging = false; };
+}
+
+function resetBambooTunnel() {
+  spawnBambooLotuses();
+  initBambooTunnel();
 }
 
 function selectBambooProbe(probe) {
   Sound.click();
   GameState.activeProbe = probe;
-  ['straight', 'curved', 'hooked'].forEach(id => {
-    document.getElementById(`btn-probe-${id}`).classList.toggle('active', id === probe);
-  });
-  
-  if (probe === 'straight') {
-    document.getElementById('bamboo-mentor-tip').textContent = "Straight slide has high inertia.";
-  } else if (probe === 'curved') {
-    document.getElementById('bamboo-mentor-tip').textContent = "Curved probe flows smoothly.";
-  } else {
-    document.getElementById('bamboo-mentor-tip').textContent = "Hooked grabs lotuses from further away.";
-  }
-  
-  resetBambooTunnel();
+  ['straight', 'curved', 'hooked'].forEach(id =>
+    document.getElementById(`btn-probe-${id}`).classList.toggle('active', id === probe));
+  document.getElementById('bamboo-mentor-tip').textContent =
+    probe === 'straight' ? "Straight probe: fast in open paths, wide turns."
+    : probe === 'curved' ? "Curved probe: follows the channel smoothly."
+    : "Hooked probe: reaches side lotuses, but slower to steer.";
+  const canvas = document.getElementById('canvas-bamboo');
+  drawBambooScene(canvas.getContext('2d'), canvas);
 }
 
 function checkBambooCollision(x, y, canvas) {
-  const sineFreq = (Math.PI * 2) / canvas.width;
-  const pathY = 150 + 60 * Math.sin(x * sineFreq);
-  const boundaryHeight = 32;
-  return Math.abs(y - pathY) > (boundaryHeight - BambooTunnel.probeRadius);
+  const lumen = canvas.height * 0.12;
+  return Math.abs(y - bambooCenterY(x, canvas)) > (lumen - BambooTunnel.probeRadius);
 }
 
 // ------------------------------------------

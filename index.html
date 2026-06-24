@@ -226,8 +226,18 @@
         <aside class="right-panel">
           <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
-              <div class="goal-line">🎯 Goal: Find the tension that closes the gap cleanly — too tight wrinkles, too loose gaps.</div>
+              <div class="goal-line">🎯 Goal: Find the optimum count and tension for this wound — more stitches is not always better.</div>
               <h3 class="panel-section-title font-cinzel">STITCH CONTROLS</h3>
+
+              <!-- Wound type selector -->
+              <div class="variable-group" style="margin-bottom:12px;">
+                <span class="lbl-small">Wound Type</span>
+                <div class="selection-pill-grid" style="grid-template-columns:1fr 1fr 1fr; gap:6px;">
+                  <button onclick="selectWoundType('clean')"  id="btn-wound-clean"  class="selection-pill active">Clean Cut</button>
+                  <button onclick="selectWoundType('jagged')" id="btn-wound-jagged" class="selection-pill">Jagged Tear</button>
+                  <button onclick="selectWoundType('scrape')" id="btn-wound-scrape" class="selection-pill">Scraped</button>
+                </div>
+              </div>
 
               <div class="slider-group">
                 <div class="slider-label-row">
@@ -237,19 +247,19 @@
                 <input type="range" id="cloth-tension-slider" min="10" max="100" value="50" oninput="updateClothTension()">
               </div>
 
-              <!-- Stats / Combo -->
+              <!-- Stats -->
               <div class="live-feed-card" style="margin-top: 16px;">
                 <h5>Stitch Progress</h5>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-weight: 700;">
                   <div>Stitches: <span id="cloth-stitch-count">0</span></div>
-                  <div>Combo Streak: <span id="cloth-combo-streak" style="color: var(--color-teal);">0</span></div>
+                  <div>Wound: <span id="cloth-wound-name" style="color: var(--color-teal);">Clean Cut</span></div>
                 </div>
               </div>
 
               <!-- Mentor Quote -->
               <div class="live-feed-card mentor-quote-box" style="margin-top: 16px;">
                 <h5>Sushruta Mentor</h5>
-                <p id="cloth-mentor-tip">"Too much pull wrinkles."</p>
+                <p id="cloth-mentor-tip">"Place stitches by clicking anchor dots."</p>
               </div>
             </div>
 
@@ -259,8 +269,8 @@
               <button onclick="clearStitches()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
                 <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Clear & Retry
               </button>
-              <button onclick="completeStation('cloth')" class="cartoon-btn primary" style="width: 100%; justify-content: center;">
-                Complete Challenge
+              <button onclick="analyzeRepair()" class="cartoon-btn primary" style="width: 100%; justify-content: center;">
+                Analyze Repair
               </button>
             </div>
           </div>
@@ -284,8 +294,12 @@
           <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
               <div class="goal-line">🎯 Goal: Discover which probe shape matches the channel's curve — experiment and watch the walls.</div>
+              <div class="live-feed-card" style="margin-bottom:10px; font-size:0.72rem; line-height:1.4;">
+                <strong>Objective.</strong> Guide the probe through the bamboo channel. Choose the probe shape that best
+                fits the path. Lotus tokens test precision — they reward control but aren't required to finish.
+              </div>
               <h3 class="panel-section-title font-cinzel">MAZE VEHICLES</h3>
-              
+
               <div class="variable-group">
                 <span class="lbl-small">Probe Style</span>
                 <div class="selection-pill-grid" style="grid-template-columns: 1fr; gap: 8px;">
@@ -296,7 +310,7 @@
               </div>
 
               <div class="live-feed-card" style="margin-top: 12px;">
-                <h5>Telemetry</h5>
+                <h5>Observations</h5>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-weight: 700;">
                   <div>Sparks: <span id="bamboo-collisions" style="color: var(--color-rose);">0</span></div>
                   <div>Lotuses: <span id="bamboo-tokens-val" style="color: #ca8a04;">0 / 3</span></div>
