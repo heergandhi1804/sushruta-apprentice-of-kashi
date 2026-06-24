@@ -163,6 +163,7 @@
         <aside class="right-panel">
           <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
+              <div class="goal-line">🎯 Goal: Discover which needle tip handles each material — try them all and see what happens.</div>
               <h3 class="panel-section-title font-cinzel">POP MATERIALS</h3>
               
               <!-- Materials selection -->
@@ -196,6 +197,8 @@
               <span id="gourd-matching-progress" style="font-size: 0.68rem; font-weight: 800; color: var(--color-teal); text-align: center; display: block; border: 1.5px dashed var(--color-border); padding: 6px; border-radius: 6px;">
                 Matched: 0 / 3 Items
               </span>
+              <p id="hint-nudge-gourd" class="hint-nudge hidden"></p>
+              <button onclick="toggleHint('gourd')" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">💡 Hint</button>
               <button onclick="resetGourdLab()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
                 <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset
               </button>
@@ -223,8 +226,9 @@
         <aside class="right-panel">
           <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
+              <div class="goal-line">🎯 Goal: Find the tension that closes the gap cleanly — too tight wrinkles, too loose gaps.</div>
               <h3 class="panel-section-title font-cinzel">STITCH CONTROLS</h3>
-              
+
               <div class="slider-group">
                 <div class="slider-label-row">
                   <span class="lbl-small">Stitch Tension</span>
@@ -250,6 +254,8 @@
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 8px;">
+              <p id="hint-nudge-cloth" class="hint-nudge hidden"></p>
+              <button onclick="toggleHint('cloth')" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">💡 Hint</button>
               <button onclick="clearStitches()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
                 <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Clear & Retry
               </button>
@@ -277,6 +283,7 @@
         <aside class="right-panel">
           <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
+              <div class="goal-line">🎯 Goal: Discover which probe shape matches the channel's curve — experiment and watch the walls.</div>
               <h3 class="panel-section-title font-cinzel">MAZE VEHICLES</h3>
               
               <div class="variable-group">
@@ -305,6 +312,8 @@
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 8px;">
+              <p id="hint-nudge-bamboo" class="hint-nudge hidden"></p>
+              <button onclick="toggleHint('bamboo')" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">💡 Hint</button>
               <button onclick="resetBambooTunnel()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
                 <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Maze
               </button>
@@ -332,6 +341,7 @@
         <aside class="right-panel">
           <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
+              <div class="goal-line">🎯 Goal: Find the tightness that secures the joint — test Walk, Bend, and Turn to see what holds.</div>
               <h3 class="panel-section-title font-cinzel">WRAPPING TARGET</h3>
               
               <div class="variable-group">
@@ -376,6 +386,8 @@
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 8px;">
+              <p id="hint-nudge-doll" class="hint-nudge hidden"></p>
+              <button onclick="toggleHint('doll')" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">💡 Hint</button>
               <button onclick="resetDollStation()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
                 <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Wrap
               </button>
@@ -409,6 +421,7 @@
         <aside class="right-panel">
           <div class="cartoon-card match-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
+              <div class="goal-line">🎯 Goal: Match each tool to the animal shape that inspired it — the function reveals the form.</div>
               <h3 class="panel-section-title font-cinzel">ANIMAL INSPIRATIONS</h3>
               
               <div class="biomimicry-row">
@@ -463,11 +476,13 @@
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 8px;">
+              <p id="hint-nudge-gallery" class="hint-nudge hidden"></p>
+              <button onclick="toggleHint('gallery')" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">💡 Hint</button>
               <button onclick="resetToolMatch()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
                 <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Matches
               </button>
-              <button id="btn-gallery-next" onclick="advanceToLevel2()" class="cartoon-btn primary" disabled style="width: 100%; justify-content: center;">
-                <span>Meet Patients</span>
+              <button id="btn-gallery-next" onclick="transitionToExam()" class="cartoon-btn primary" disabled style="width: 100%; justify-content: center;">
+                <span>Enter Examination</span>
                 <i data-lucide="arrow-right" class="w-4 h-4"></i>
               </button>
             </div>
@@ -517,6 +532,7 @@
         <aside class="right-panel">
           <div class="cartoon-card diagnosis-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
+              <div class="goal-line">🎯 Goal: Use all three tools — each reveals a different clue about what this soldier needs.</div>
               <h3 class="panel-section-title font-cinzel">INVESTIGATION</h3>
               
               <!-- LOOK and STRETCH toggles -->
@@ -544,6 +560,8 @@
             </div>
             
             <div style="display: flex; flex-direction: column; gap: 8px;">
+              <p id="hint-nudge-level2" class="hint-nudge hidden"></p>
+              <button onclick="toggleHint('level2')" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">💡 Hint</button>
               <button onclick="resetIntake()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
                 <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Intake
               </button>
@@ -573,6 +591,7 @@
         <aside class="right-panel">
           <div class="cartoon-card variables-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
+              <div class="goal-line">🎯 Goal: Place stitches evenly and find the tension that closes cleanly — watch the face and score.</div>
               <h3 class="panel-section-title font-cinzel">REPAIR CONTROLS</h3>
 
               <!-- Tool setups -->
@@ -639,6 +658,8 @@
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 8px;">
+              <p id="hint-nudge-treatment" class="hint-nudge hidden"></p>
+              <button onclick="toggleHint('treatment')" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">💡 Hint</button>
               <button onclick="clearTreatmentStitches()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
                 <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Clear Suture
               </button>
@@ -705,27 +726,206 @@
       </div>
     </div>
 
+    <!-- LEVEL 1.75: FINAL APPRENTICE EXAMINATION -->
+    <div id="screen-exam" class="screen-wrapper hidden">
+      <div class="split-viewport">
+        <!-- Left panel: Wound Visual plate and Time-Lapse -->
+        <section class="left-panel">
+          <div class="section-title-row">
+            <h2 class="font-cinzel" style="font-size: 1.1rem; color: var(--color-dark-slate);">
+              Final Apprentice Examination: <span id="exam-case-title" style="color: var(--color-teal);">Case 1 of 6</span>
+            </h2>
+            <span id="exam-progress-badge" class="status-pill font-cinzel" style="background: var(--color-teal-light); color: var(--color-teal);">Synthesis Exam</span>
+          </div>
+          
+          <div class="canvas-container" style="flex-grow: 1;">
+            <canvas id="canvas-exam"></canvas>
+          </div>
+
+          <!-- Healing preview controls, appears after successful verification -->
+          <div id="exam-timeline-container" class="hidden" style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between; background: var(--color-teal-light); border: 1.5px solid var(--color-teal); padding: 8px 16px; border-radius: 12px;">
+            <span style="font-size: 0.8rem; font-weight: 800; color: var(--color-teal); display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="clock" class="w-4 h-4"></i> Healing Timeline Preview:
+            </span>
+            <div style="display: flex; gap: 8px;">
+              <button onclick="setExamTimelineStep(0)" id="btn-exam-day0" class="selection-pill active">Day 0</button>
+              <button onclick="setExamTimelineStep(1)" id="btn-exam-day7" class="selection-pill">Day 7</button>
+              <button onclick="setExamTimelineStep(2)" id="btn-exam-day30" class="selection-pill">Day 30</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right panel: Apprentice Reasoning Board -->
+        <aside class="right-panel">
+          <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 12px;">
+              <h3 class="panel-section-title font-cinzel" style="font-size: 0.95rem; border-bottom: 1.5px solid var(--color-border); padding-bottom: 4px;">REASONING BOARD</h3>
+              
+              <!-- Step 1: Observation -->
+              <div class="variable-group">
+                <span class="lbl-small">1. Clinical Observation</span>
+                <select id="exam-select-observation" class="exam-dropdown" onchange="updateExamReasoningSentence()" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid var(--color-border); font-family: var(--font-body); font-size: 0.75rem; background: white; cursor: pointer;">
+                  <option value="">-- Choose Observation --</option>
+                  <option value="clean_edge">wound edges are clean and straight</option>
+                  <option value="puncture_opening">a small puncture opening</option>
+                  <option value="jagged_edge">margins are jagged and irregular</option>
+                  <option value="crushed_area">surrounding tissue is bruised and crushed</option>
+                  <option value="scraped_surface">surface skin is scraped raw superficially</option>
+                  <option value="deep_narrow_path">the path goes deep into a narrow channel</option>
+                </select>
+              </div>
+
+              <!-- Step 2: Classification -->
+              <div class="variable-group">
+                <span class="lbl-small">2. Diagnostic Conclusion</span>
+                <select id="exam-select-category" class="exam-dropdown" onchange="updateExamReasoningSentence()" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid var(--color-border); font-family: var(--font-body); font-size: 0.75rem; background: white; cursor: pointer;">
+                  <option value="">-- Choose Category --</option>
+                  <option value="Chinna">Chinna (Incised)</option>
+                  <option value="Bhinna">Bhinna (Punctured)</option>
+                  <option value="Viddha">Viddha (Pierced)</option>
+                  <option value="Kshata">Kshata (Lacerated)</option>
+                  <option value="Pichchita">Pichchita (Crushed)</option>
+                  <option value="Ghrishta">Ghrishta (Abraded)</option>
+                </select>
+              </div>
+
+              <!-- Step 3: Treatment strategy, only active/visible for full reasoning cases (1-3) -->
+              <div id="exam-treatment-section" class="hidden" style="display: flex; flex-direction: column; gap: 12px; border-top: 1.5px dashed var(--color-border); padding-top: 10px; margin-top: 6px;">
+                <h4 class="font-cinzel" style="font-size: 0.75rem; color: #78716c; letter-spacing: 0.5px;">3. Treatment Strategy</h4>
+                
+                <div class="variable-group">
+                  <span class="lbl-small">Surgical Tool & Needle Style</span>
+                  <select id="exam-select-tool" class="exam-dropdown" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid var(--color-border); font-family: var(--font-body); font-size: 0.75rem; background: white; cursor: pointer;">
+                    <option value="">-- Choose Tool --</option>
+                    <option value="curved">Curved Needle</option>
+                    <option value="straight">Straight Probe / Needle</option>
+                    <option value="triangular">Triangular Needle</option>
+                    <option value="dressing">Medicated Dressing (No Suture)</option>
+                  </select>
+                </div>
+
+                <div class="variable-group">
+                  <span class="lbl-small">Suture Tension Strategy</span>
+                  <select id="exam-select-tension" class="exam-dropdown" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid var(--color-border); font-family: var(--font-body); font-size: 0.75rem; background: white; cursor: pointer;">
+                    <option value="">-- Choose Tension --</option>
+                    <option value="low">Low Tension</option>
+                    <option value="moderate">Moderate Tension</option>
+                    <option value="high">High Tension</option>
+                    <option value="none">N/A (No tension / dressing only)</option>
+                  </select>
+                </div>
+
+                <div class="variable-group">
+                  <span class="lbl-small">Support & Wrap Strategy</span>
+                  <select id="exam-select-support" class="exam-dropdown" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid var(--color-border); font-family: var(--font-body); font-size: 0.75rem; background: white; cursor: pointer;">
+                    <option value="">-- Choose Support --</option>
+                    <option value="surface">Surface skin protection</option>
+                    <option value="deep">Deep tissue support</option>
+                    <option value="joint">Linen joint wrap</option>
+                  </select>
+                </div>
+
+                <div class="variable-group">
+                  <span class="lbl-small">Primary Healing Goal</span>
+                  <select id="exam-select-priority" class="exam-dropdown" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid var(--color-border); font-family: var(--font-body); font-size: 0.75rem; background: white; cursor: pointer;">
+                    <option value="">-- Choose Goal --</option>
+                    <option value="cosmetic">Cosmetic alignment</option>
+                    <option value="cavity">Deep cavity closure (prevent pockets)</option>
+                    <option value="necrosis">Avoid edge damage (restricting blood)</option>
+                    <option value="surface">Surface protection and moisture</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Logical Sentence Output -->
+              <div class="live-feed-card" style="margin-top: 6px; background: #faf9f6; border: 1.5px dashed var(--color-border); padding: 8px;">
+                <p id="exam-sentence-preview" style="font-size: 0.72rem; font-style: italic; color: #57534e; text-align: center; line-height: 1.4; margin: 0;">
+                  "Because I observe ____, I conclude ____."
+                </p>
+              </div>
+
+              <!-- Mentor Tip / Feedback Box -->
+              <div class="live-feed-card mentor-quote-box" style="margin-top: 6px; padding: 10px;">
+                <h5>Sushruta Mentor</h5>
+                <p id="exam-mentor-tip" style="font-size: 0.72rem; line-height: 1.35; margin: 0;">
+                  "A healer observes first. Look closely at the wound margins and depth before deciding."
+                </p>
+              </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px; border-top: 1.5px solid var(--color-border); padding-top: 10px;">
+              <button id="btn-exam-verify" onclick="verifyExamHypothesis()" class="cartoon-btn primary" style="width: 100%; justify-content: center; height: 38px;">
+                <span>Verify Clinical Judgment</span>
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+              </button>
+              <button id="btn-exam-next" onclick="advanceExamCase()" class="cartoon-btn primary hidden" style="width: 100%; justify-content: center; height: 38px; animation: pulse 1.5s infinite;">
+                <span>Next Case</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
     <!-- LEVEL 4.5: GRADUATION / APPRENTICE BADGE SCREEN -->
     <div id="screen-graduation" class="screen-wrapper hidden">
-      <div class="cartoon-card prologue-card" style="text-align: center; max-width: 500px; margin: 6vh auto; display: flex; flex-direction: column; gap: 16px;">
-        <h2 class="font-cinzel" style="font-size: 1.6rem; color: var(--color-pink);">APPRENTICE GRADUATION</h2>
-        <div class="divider"></div>
+      <div class="cartoon-card graduation-scroll-card" style="text-align: center; max-width: 600px; margin: 4vh auto; display: flex; flex-direction: column; gap: 16px; padding: 28px; border: 3px double #b45309; background: #faf6eb; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); position: relative;">
+        <!-- Golden Scroll Trim Elements -->
+        <div style="position: absolute; top: -10px; left: 10%; right: 10%; height: 8px; background: #b45309; border-radius: 4px;"></div>
+        <div style="position: absolute; bottom: -10px; left: 10%; right: 10%; height: 8px; background: #b45309; border-radius: 4px;"></div>
         
-        <div class="logo-icon" style="width: 64px; height: 64px; margin: 8px auto; background: var(--color-teal-light); border-radius: 9999px; color: var(--color-teal); display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
-          <i data-lucide="award" class="w-10 h-10"></i>
+        <h2 class="font-cinzel" style="font-size: 1.75rem; color: #b45309; letter-spacing: 2px;">SUSHRUTA'S APPRENTICE</h2>
+        <div style="font-size: 0.75rem; text-transform: uppercase; color: #78716c; font-weight: 800; letter-spacing: 1px; margin-top: -8px;">Gurukul Certificate of Completion</div>
+        <div class="divider" style="background: #d97706; height: 2px; margin: 8px auto; width: 60%;"></div>
+        
+        <div class="logo-icon" style="width: 56px; height: 56px; margin: 4px auto; background: rgba(217, 119, 6, 0.1); border-radius: 9999px; border: 1.5px solid #d97706; color: #d97706; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
+          <i data-lucide="award" class="w-8 h-8"></i>
         </div>
 
-        <h3 class="font-cinzel">Rank: Healer</h3>
+        <h3 class="font-cinzel" style="font-size: 1.15rem; color: #451a03; margin: 4px 0;">Rank: Healer</h3>
         
-        <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4;">
-          You have learned that healing is about balancing tension. You are ready to train as a master clinician in Kashi.
+        <p style="font-size: 0.82rem; color: #451a03; line-height: 1.45; font-style: italic; max-width: 90%; margin: 0 auto;">
+          "A healer who knows only theory is like a bird with one wing. You have trained your eyes, your hands, and your reasoning in the tradition of Kashi."
         </p>
 
-        <div class="font-cinzel" style="font-weight: 800; font-size: 0.85rem;">
-          FINAL APPRENTICE RANK: <span id="grad-pathway" style="color: var(--color-teal);">Sushruta's Apprentice</span>
+        <!-- Graduation Scroll Summary -->
+        <div class="scroll-lessons-container" style="text-align: left; background: rgba(255, 255, 255, 0.7); border: 1.5px solid rgba(180, 83, 9, 0.15); border-radius: 10px; padding: 16px; margin: 8px 0; display: flex; flex-direction: column; gap: 10px;">
+          <h4 class="font-cinzel" style="font-size: 0.8rem; color: #b45309; border-bottom: 1px solid rgba(180, 83, 9, 0.15); padding-bottom: 4px; margin-bottom: 4px;">Core Lessons Learned:</h4>
+          
+          <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.75rem; color: #57534e; line-height: 1.35;">
+            <i data-lucide="eye" class="w-4 h-4" style="color: #b45309; flex-shrink: 0; margin-top: 1px;"></i>
+            <div><strong>Observation comes before action:</strong> Examine the wound edge, depth, and surrounding skin properties carefully before choosing any treatment.</div>
+          </div>
+          
+          <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.75rem; color: #57534e; line-height: 1.35;">
+            <i data-lucide="wrench" class="w-4 h-4" style="color: #b45309; flex-shrink: 0; margin-top: 1px;"></i>
+            <div><strong>Tools match materials:</strong> Select curved needles for skin margins, straight probes for deep cavities, and triangular needles for tough structures.</div>
+          </div>
+          
+          <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.75rem; color: #57534e; line-height: 1.35;">
+            <i data-lucide="scale" class="w-4 h-4" style="color: #b45309; flex-shrink: 0; margin-top: 1px;"></i>
+            <div><strong>Balance beats force:</strong> Tension must be carefully calibrated. Too much tension causes edge damage and raised scars, while too little leaves gaps.</div>
+          </div>
+
+          <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.75rem; color: #57534e; line-height: 1.35;">
+            <i data-lucide="compass" class="w-4 h-4" style="color: #b45309; flex-shrink: 0; margin-top: 1px;"></i>
+            <div><strong>Shape affects navigation:</strong> Probe and needle shapes must naturally mirror anatomical paths to slide smoothly without force.</div>
+          </div>
+
+          <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.75rem; color: #57534e; line-height: 1.35;">
+            <i data-lucide="shield" class="w-4 h-4" style="color: #b45309; flex-shrink: 0; margin-top: 1px;"></i>
+            <div><strong>Support must be secure but not restrictive:</strong> Bandages and wraps must hold joint margins stable without constricting blood flow.</div>
+          </div>
+
+          <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.75rem; color: #57534e; line-height: 1.35;">
+            <i data-lucide="sparkles" class="w-4 h-4" style="color: #b45309; flex-shrink: 0; margin-top: 1px;"></i>
+            <div><strong>Good healing requires optimization:</strong> True mastery is combining observation and materials to resolve tissue damage safely.</div>
+          </div>
         </div>
 
-        <button onclick="restartSimulation()" class="cartoon-btn primary" style="margin: 16px auto 0 auto;">
+        <button onclick="restartSimulation()" class="cartoon-btn primary" style="margin: 8px auto 0 auto; background: #b45309; border-color: #78350f; color: white;">
           Restart Apprenticeship
         </button>
       </div>

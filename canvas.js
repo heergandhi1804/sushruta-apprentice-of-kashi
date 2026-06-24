@@ -1,5 +1,282 @@
 // canvas.js - Premium Graphics and Animations for Apprentice of Kashi
 
+// =============================================================
+// §1a SHARED CANVAS HELPERS
+// =============================================================
+
+// Stylized dusk battlefield backdrop — reused on all clinical screens
+function drawBattlefield(ctx, canvas) {
+  const W = canvas.width, H = canvas.height;
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.55);
+  sky.addColorStop(0, '#7c3f1a');
+  sky.addColorStop(0.5, '#d4762a');
+  sky.addColorStop(1, '#f0b060');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H * 0.55);
+
+  // Ground
+  const ground = ctx.createLinearGradient(0, H * 0.55, 0, H);
+  ground.addColorStop(0, '#c8973a');
+  ground.addColorStop(1, '#8b6220');
+  ctx.fillStyle = ground;
+  ctx.fillRect(0, H * 0.55, W, H * 0.45);
+
+  // Distant tent silhouettes
+  ctx.fillStyle = 'rgba(60,30,10,0.55)';
+  [[0.08, 0.52, 0.07], [0.22, 0.50, 0.06], [0.65, 0.51, 0.08], [0.82, 0.49, 0.05]].forEach(([rx, ry, rw]) => {
+    const tx = rx * W, ty = ry * H, tw = rw * W;
+    ctx.beginPath();
+    ctx.moveTo(tx - tw, ty + tw * 0.9);
+    ctx.lineTo(tx, ty - tw * 1.6);
+    ctx.lineTo(tx + tw, ty + tw * 0.9);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // Faint spears/standards
+  ctx.strokeStyle = 'rgba(60,30,10,0.35)';
+  ctx.lineWidth = 1.5;
+  [[0.15, 0.30], [0.40, 0.28], [0.72, 0.29], [0.88, 0.32]].forEach(([rx, ry]) => {
+    ctx.beginPath();
+    ctx.moveTo(rx * W, ry * H);
+    ctx.lineTo(rx * W, H * 0.56);
+    ctx.stroke();
+    // pennant
+    ctx.fillStyle = 'rgba(180,60,20,0.4)';
+    ctx.beginPath();
+    ctx.moveTo(rx * W, ry * H);
+    ctx.lineTo(rx * W + 10, ry * H + 6);
+    ctx.lineTo(rx * W, ry * H + 12);
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+
+// Expressive soldier face — mood 0=agony, 100=relief
+function drawSoldierFace(ctx, x, y, r, mood) {
+  const t = Math.max(0, Math.min(1, mood / 100));
+
+  // Head circle
+  ctx.save();
+  const skinGrad = ctx.createRadialGradient(x - r * 0.2, y - r * 0.2, r * 0.1, x, y, r);
+  skinGrad.addColorStop(0, '#f5d0a0');
+  skinGrad.addColorStop(1, '#c8923a');
+  ctx.fillStyle = skinGrad;
+  ctx.strokeStyle = '#7c4a1a';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, 2 * Math.PI);
+  ctx.fill(); ctx.stroke();
+
+  // Eyes
+  const eyeY = y - r * 0.15;
+  const eyeOpenH = 2 + t * 4; // narrow in pain, open in relief
+  ctx.fillStyle = '#292524';
+  [-0.35, 0.35].forEach(ex => {
+    ctx.beginPath();
+    ctx.ellipse(x + ex * r, eyeY, r * 0.12, eyeOpenH, 0, 0, 2 * Math.PI);
+    ctx.fill();
+  });
+
+  // Brows — furrowed (pain) → relaxed (relief)
+  const browY = eyeY - r * 0.22;
+  const browAngle = (1 - t) * 0.35; // steep in pain
+  ctx.strokeStyle = '#5a3010';
+  ctx.lineWidth = 2;
+  [-0.38, 0.38].forEach((ex, i) => {
+    const sign = i === 0 ? 1 : -1;
+    ctx.beginPath();
+    ctx.moveTo(x + ex * r - r * 0.12, browY + sign * browAngle * r * 0.5);
+    ctx.lineTo(x + ex * r + r * 0.12, browY - sign * browAngle * r * 0.5);
+    ctx.stroke();
+  });
+
+  // Mouth — gritted (pain) → soft smile (relief)
+  const mouthY = y + r * 0.35;
+  ctx.strokeStyle = '#7c3010';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  if (t < 0.4) {
+    // gritted — straight line with teeth
+    ctx.moveTo(x - r * 0.28, mouthY);
+    ctx.lineTo(x + r * 0.28, mouthY);
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x - r * 0.22, mouthY - 3, r * 0.44, 4);
+  } else {
+    // gentle curve toward smile
+    const curve = (t - 0.4) / 0.6 * r * 0.12;
+    ctx.moveTo(x - r * 0.28, mouthY);
+    ctx.quadraticCurveTo(x, mouthY + curve, x + r * 0.28, mouthY);
+    ctx.stroke();
+  }
+
+  // Sweat drops in pain
+  if (t < 0.35) {
+    ctx.fillStyle = 'rgba(100,160,220,0.7)';
+    [[0.55, -0.4], [0.6, 0.1]].forEach(([ex, ey]) => {
+      ctx.beginPath();
+      ctx.ellipse(x + ex * r, y + ey * r, 2.5, 4, 0.3, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+  }
+  ctx.restore();
+}
+
+// Anatomically readable limb — type: hand|forearm|knee|head|thigh
+function drawLimb(ctx, type, x, y, opts = {}) {
+  const { wound = false, woundPct = 0.5, scale = 1 } = opts;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+
+  const skin1 = '#f5c898', skin2 = '#d4883a', skin3 = '#b36020';
+
+  if (type === 'forearm') {
+    // Forearm horizontal — tapered cylinder
+    const grad = ctx.createLinearGradient(0, -30, 0, 30);
+    grad.addColorStop(0, skin1); grad.addColorStop(0.5, skin2); grad.addColorStop(1, skin3);
+    ctx.fillStyle = grad; ctx.strokeStyle = skin3; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(-60, 0, 12, 22, 0, -Math.PI/2, Math.PI/2);
+    ctx.bezierCurveTo(-40, -22, 40, -24, 60, -18);
+    ctx.lineTo(60, 18);
+    ctx.bezierCurveTo(40, 24, -40, 22, -60, 22);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // Wrist crease
+    ctx.strokeStyle = 'rgba(100,50,10,0.25)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(45, -14); ctx.lineTo(45, 14); ctx.stroke();
+  }
+
+  else if (type === 'hand') {
+    // Palm + 4 fingers
+    const grad = ctx.createLinearGradient(0, -20, 0, 50);
+    grad.addColorStop(0, skin1); grad.addColorStop(1, skin2);
+    ctx.fillStyle = grad; ctx.strokeStyle = skin3; ctx.lineWidth = 2;
+    // Palm
+    ctx.beginPath(); ctx.roundRect(-28, -10, 56, 48, 8); ctx.fill(); ctx.stroke();
+    // Fingers
+    [[-20, -28], [-7, -32], [6, -32], [19, -28]].forEach(([fx, fy]) => {
+      ctx.beginPath(); ctx.roundRect(fx - 7, fy, 14, 26, 6); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(100,50,10,0.2)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(fx - 5, fy + 9); ctx.lineTo(fx + 5, fy + 9); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(fx - 5, fy + 17); ctx.lineTo(fx + 5, fy + 17); ctx.stroke();
+      ctx.strokeStyle = skin3; ctx.lineWidth = 2;
+      // nail
+      ctx.fillStyle = 'rgba(255,240,220,0.9)';
+      ctx.beginPath(); ctx.roundRect(fx - 5, fy + 1, 10, 7, 3); ctx.fill();
+      ctx.fillStyle = grad;
+    });
+    // Thumb
+    ctx.beginPath(); ctx.roundRect(-42, 4, 14, 22, 6); ctx.fill(); ctx.stroke();
+  }
+
+  else if (type === 'knee') {
+    // Leg with patella bump
+    const grad = ctx.createLinearGradient(0, -60, 0, 60);
+    grad.addColorStop(0, skin1); grad.addColorStop(0.5, skin2); grad.addColorStop(1, skin3);
+    ctx.fillStyle = grad; ctx.strokeStyle = skin3; ctx.lineWidth = 2;
+    // Upper leg
+    ctx.beginPath(); ctx.roundRect(-22, -60, 44, 50, 10); ctx.fill(); ctx.stroke();
+    // Patella
+    ctx.fillStyle = '#f0c080';
+    ctx.beginPath(); ctx.ellipse(0, -8, 20, 14, 0, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = grad;
+    // Lower leg
+    ctx.beginPath(); ctx.roundRect(-18, 6, 36, 54, 8); ctx.fill(); ctx.stroke();
+  }
+
+  else if (type === 'head') {
+    // Head with ear and jawline
+    const grad = ctx.createRadialGradient(-15, -15, 5, 0, 0, 65);
+    grad.addColorStop(0, skin1); grad.addColorStop(1, skin2);
+    ctx.fillStyle = grad; ctx.strokeStyle = skin3; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(0, 0, 55, 65, 0, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+    // Ear
+    ctx.beginPath(); ctx.ellipse(56, 5, 10, 16, 0.3, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(-56, 5, 10, 16, -0.3, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+  }
+
+  else if (type === 'thigh') {
+    // Thick thigh cylinder
+    const grad = ctx.createLinearGradient(0, -60, 0, 60);
+    grad.addColorStop(0, skin1); grad.addColorStop(0.5, skin2); grad.addColorStop(1, skin3);
+    ctx.fillStyle = grad; ctx.strokeStyle = skin3; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.roundRect(-32, -70, 64, 140, 18); ctx.fill(); ctx.stroke();
+    // Quad line
+    ctx.strokeStyle = 'rgba(100,50,10,0.15)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-10, -60); ctx.lineTo(-10, 60); ctx.stroke();
+  }
+
+  // Wound line
+  if (wound) {
+    const wy = woundPct * 40 - 20;
+    ctx.strokeStyle = '#e11d48'; ctx.lineWidth = 2.5;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    if (type === 'forearm') {
+      ctx.moveTo(-10, -16); ctx.lineTo(14, 16);
+    } else if (type === 'hand') {
+      ctx.moveTo(-12, 15); ctx.lineTo(12, 25);
+    } else if (type === 'knee') {
+      ctx.moveTo(-14, -5); ctx.lineTo(14, 5);
+    } else if (type === 'thigh') {
+      ctx.moveTo(-20, wy - 10); ctx.lineTo(20, wy + 10);
+    } else {
+      ctx.moveTo(-15, 0); ctx.lineTo(15, 0);
+    }
+    ctx.stroke();
+    // wound glow
+    ctx.strokeStyle = 'rgba(225,29,72,0.2)'; ctx.lineWidth = 6;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// Faint guide overlay for hint system
+function drawHintPath(ctx, points, opts = {}) {
+  const { dashed = true, alpha = 0.25, color = '#06b6d4', width = 3 } = opts;
+  if (!points || points.length < 2) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (dashed) ctx.setLineDash([8, 6]);
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// Big percent badge — draws centered at (x,y)
+function roundedScore(ctx, x, y, pct) {
+  const r = 32;
+  ctx.save();
+  // Circle bg — color by score
+  const col = pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#ef4444';
+  ctx.fillStyle = col;
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 3;
+  ctx.shadowColor = col;
+  ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0;
+  // Text
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${pct === 100 ? 14 : 16}px Outfit`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`${Math.round(pct)}%`, x, y);
+  ctx.restore();
+}
+
 // Helper: draw arrow head
 function drawArrow(ctx, fromx, fromy, tox, toy) {
   const headlen = 7;
@@ -813,5 +1090,446 @@ function drawHealingStep(ctx, canvas, step, tension) {
       ctx.arc(st.x2, st.y2, 4.5, 0, 2*Math.PI);
       ctx.fill();
     });
+  }
+}
+
+// ------------------------------------------
+// LEVEL 1.75: FINAL APPRENTICE EXAMINATION
+// ------------------------------------------
+function drawExamWoundScene(ctx, canvas, woundIndex, step, tension, isCorrect) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 1. Parchment Background plate
+  ctx.fillStyle = '#faf7ed';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 2. Vintage anatomical plate double-line border
+  ctx.strokeStyle = '#b45309';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
+  
+  ctx.strokeStyle = '#b45309';
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(16, 16, canvas.width - 32, canvas.height - 32);
+
+  // 3. Plate Title Header
+  ctx.fillStyle = '#78350f';
+  ctx.font = 'bold 10px "Cinzel", serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('SUSHRUTA GURUKUL • CLINICAL STUDY PLATE ' + (woundIndex + 1), canvas.width / 2, 32);
+
+  // 4. Draw stylized anatomical limb
+  const cy = canvas.height * 0.52;
+  const lx = 80;
+  const lw = canvas.width - 160;
+  const lh = 85;
+
+  // Draw shadow first
+  ctx.shadowColor = 'rgba(120, 53, 15, 0.08)';
+  ctx.shadowBlur = 15;
+  ctx.shadowOffsetY = 10;
+
+  // Limb cylinder linear shading gradient
+  const limbGrad = ctx.createLinearGradient(0, cy - lh/2, 0, cy + lh/2);
+  limbGrad.addColorStop(0, '#f9ebd2');
+  limbGrad.addColorStop(0.3, '#f5dcb3');
+  limbGrad.addColorStop(0.5, '#ebd1a0');
+  limbGrad.addColorStop(0.8, '#d9be8b');
+  limbGrad.addColorStop(1, '#caa774');
+
+  ctx.fillStyle = limbGrad;
+  ctx.beginPath();
+  // Rounded ends cylinder
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(lx, cy - lh/2, lw, lh, 40);
+  } else {
+    ctx.rect(lx, cy - lh/2, lw, lh);
+  }
+  ctx.fill();
+
+  // Reset shadow
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  // Draw subtle muscle/anatomy contour lines along the limb
+  ctx.strokeStyle = 'rgba(180, 83, 9, 0.12)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(lx + 40, cy - lh/3);
+  ctx.lineTo(lx + lw - 40, cy - lh/3);
+  ctx.moveTo(lx + 50, cy + lh/4);
+  ctx.lineTo(lx + lw - 50, cy + lh/4);
+  ctx.stroke();
+
+  // 5. Draw specific wound/healing steps based on woundIndex and step
+  const wx = canvas.width / 2;
+  const wy = cy;
+
+  // Helper: Draw sutures
+  function drawSutures(x1, y1, x2, y2, count, styleTension) {
+    ctx.strokeStyle = styleTension === 'high' ? '#b91c1c' : '#78350f';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    
+    for (let i = 0; i < count; i++) {
+      const t = (i + 0.5) / count;
+      const sx = x1 + dx * t;
+      const sy = y1 + dy * t;
+      
+      // Suture cross loop
+      ctx.beginPath();
+      if (styleTension === 'high') {
+        // Tight, straight stitches pulling hard
+        ctx.moveTo(sx - 4, sy - 8);
+        ctx.lineTo(sx + 4, sy + 8);
+      } else {
+        // Nice curved loops
+        ctx.arc(sx, sy, 6, -Math.PI/4, (5*Math.PI)/4);
+      }
+      ctx.stroke();
+
+      // Stitch knot dots
+      ctx.fillStyle = '#451a03';
+      ctx.beginPath();
+      ctx.arc(sx - 3, sy - 4, 2, 0, 2*Math.PI);
+      ctx.fill();
+    }
+  }
+
+  // Helper: Draw linen wrap
+  function drawLinenWrap() {
+    ctx.fillStyle = '#faf8f5';
+    ctx.strokeStyle = '#d9beb0';
+    ctx.lineWidth = 1.5;
+    
+    // Draw 3 diagonal overlapping bandage strips
+    for (let i = -1; i <= 1; i++) {
+      const bx = wx + i * 22;
+      ctx.beginPath();
+      ctx.moveTo(bx - 15, wy - lh/2);
+      ctx.lineTo(bx + 15, wy + lh/2);
+      ctx.lineTo(bx + 30, wy + lh/2);
+      ctx.lineTo(bx, wy - lh/2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      
+      // Bandage texture lines
+      ctx.strokeStyle = '#e6d3c9';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(bx - 8, wy - lh/2);
+      ctx.lineTo(bx + 22, wy + lh/2);
+      ctx.stroke();
+      ctx.strokeStyle = '#d9beb0';
+      ctx.lineWidth = 1.5;
+    }
+  }
+
+  switch (woundIndex) {
+    case 0: // Chinna (Incised) - Full Reasoning
+      // Straight clean incision
+      if (step === 0) {
+        if (!isCorrect) {
+          // Open wound gap (unverified or incorrect)
+          ctx.fillStyle = '#991b1b'; // deep skin layer red
+          ctx.beginPath();
+          ctx.ellipse(wx, wy, 45, 12, 0, 0, 2*Math.PI);
+          ctx.fill();
+          
+          ctx.strokeStyle = '#7f1d1d';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        } else {
+          // Correctly closed Day 0
+          ctx.strokeStyle = '#7f1d1d';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(wx - 50, wy);
+          ctx.lineTo(wx + 50, wy);
+          ctx.stroke();
+          
+          drawSutures(wx - 45, wy, wx + 45, wy, 4, tension);
+        }
+      } else if (step === 1) {
+        // Day 7
+        if (tension === 'high') {
+          // Inflammation and puckering
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.15)'; // inflammation glow
+          ctx.beginPath(); ctx.ellipse(wx, wy, 60, 20, 0, 0, 2 * Math.PI); ctx.fill();
+          
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.moveTo(wx - 48, wy); ctx.lineTo(wx + 48, wy); ctx.stroke();
+          
+          // Puckering lines
+          ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+          ctx.lineWidth = 1;
+          for (let offset = -40; offset <= 40; offset += 15) {
+            ctx.beginPath();
+            ctx.moveTo(wx + offset - 2, wy - 8);
+            ctx.lineTo(wx + offset + 2, wy + 8);
+            ctx.stroke();
+          }
+        } else if (tension === 'low') {
+          // Gaped slightly
+          ctx.fillStyle = '#b91c1c';
+          ctx.beginPath(); ctx.ellipse(wx, wy, 40, 6, 0, 0, 2*Math.PI); ctx.fill();
+        } else {
+          // Optimal pink line
+          ctx.strokeStyle = '#fda4af';
+          ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(wx - 45, wy); ctx.lineTo(wx + 45, wy); ctx.stroke();
+        }
+      } else if (step === 2) {
+        // Day 30
+        if (tension === 'high') {
+          // Raised scar
+          ctx.fillStyle = '#f43f5e';
+          ctx.strokeStyle = '#be123c';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.ellipse(wx, wy, 48, 4, 0, 0, 2*Math.PI);
+          ctx.fill(); ctx.stroke();
+          
+          // Subtle shading on raised scar
+          ctx.fillStyle = '#fda4af';
+          ctx.beginPath();
+          ctx.ellipse(wx, wy - 1, 44, 1.5, 0, 0, 2*Math.PI);
+          ctx.fill();
+        } else if (tension === 'low') {
+          // Gaped failed scar
+          ctx.fillStyle = '#fca5a5';
+          ctx.beginPath(); ctx.ellipse(wx, wy, 42, 8, 0, 0, 2*Math.PI); ctx.fill();
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        } else {
+          // Optimal thin clean scar line
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(wx - 45, wy); ctx.lineTo(wx + 45, wy); ctx.stroke();
+        }
+      }
+      break;
+
+    case 1: // Bhinna (Punctured) - Full Reasoning
+      // Deep narrow puncture hole
+      if (step === 0) {
+        if (!isCorrect) {
+          // Open dark puncture cavity
+          ctx.fillStyle = '#451a03'; // deep pocket dark void
+          ctx.beginPath(); ctx.ellipse(wx, wy, 15, 8, 0, 0, 2*Math.PI); ctx.fill();
+          
+          ctx.strokeStyle = '#7f1d1d';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        } else {
+          // Neat single suture closing surface
+          ctx.strokeStyle = '#7f1d1d';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(wx - 10, wy); ctx.lineTo(wx + 10, wy); ctx.stroke();
+          
+          drawSutures(wx - 8, wy, wx + 8, wy, 1, 'moderate');
+        }
+      } else if (step === 1) {
+        // Day 7
+        const isPriorityCorrect = (tension === 'low' && isCorrect);
+        if (!isPriorityCorrect) {
+          // Swollen inflammation bump (healing issue / pocketing)
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+          ctx.beginPath(); ctx.arc(wx, wy, 25, 0, 2*Math.PI); ctx.fill();
+          
+          ctx.fillStyle = '#f87171';
+          ctx.beginPath(); ctx.ellipse(wx, wy, 15, 8, 0, 0, 2*Math.PI); ctx.fill();
+        } else {
+          // Clean pink speck
+          ctx.fillStyle = '#fda4af';
+          ctx.beginPath(); ctx.arc(wx, wy, 5, 0, 2*Math.PI); ctx.fill();
+        }
+      } else if (step === 2) {
+        // Day 30
+        const isPriorityCorrect = (tension === 'low' && isCorrect);
+        if (!isPriorityCorrect) {
+          // Persistent raised nodule/bump (healing issue)
+          ctx.fillStyle = '#fda4af';
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(wx, wy, 12, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+        } else {
+          // Clean, flat speck scar
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath(); ctx.arc(wx, wy, 3, 0, 2*Math.PI); ctx.fill();
+        }
+      }
+      break;
+
+    case 2: // Pichchita (Crushed) - Full Reasoning
+      // Bruised and crushed zone
+      const drawBruise = (color) => {
+        const bruiseGrad = ctx.createRadialGradient(wx, wy, 5, wx, wy, 45);
+        bruiseGrad.addColorStop(0, color);
+        bruiseGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = bruiseGrad;
+        ctx.beginPath(); ctx.ellipse(wx, wy, 55, 20, 0, 0, 2*Math.PI); ctx.fill();
+      };
+
+      if (step === 0) {
+        if (isCorrect) {
+          // Dress & wrap (bandage)
+          drawBruise('rgba(88, 28, 135, 0.35)'); // purple bruise
+          drawLinenWrap();
+        } else {
+          // Forced sutures in bruised skin
+          drawBruise('rgba(127, 29, 29, 0.45)');
+          ctx.strokeStyle = '#7f1d1d';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.ellipse(wx, wy, 35, 10, 0, 0, 2*Math.PI); ctx.fill();
+          ctx.stroke();
+          
+          // Draw torn threads cutting skin
+          drawSutures(wx - 30, wy, wx + 30, wy, 3, 'high');
+        }
+      } else if (step === 1) {
+        // Day 7
+        if (isCorrect) {
+          // Bruise fading to yellow-green, under wrap
+          drawBruise('rgba(161, 98, 7, 0.2)');
+          drawLinenWrap();
+        } else {
+          // Edge damage: dark grey-black skin margins
+          drawBruise('rgba(24, 24, 27, 0.6)'); // necrotic dark zone
+          ctx.fillStyle = '#18181b';
+          ctx.beginPath(); ctx.ellipse(wx, wy, 38, 12, 0, 0, 2*Math.PI); ctx.fill();
+        }
+      } else if (step === 2) {
+        // Day 30
+        if (isCorrect) {
+          // Perfect recovery
+          ctx.fillStyle = '#e8d8b8';
+          // No scar, smooth skin
+        } else {
+          // Permanent edge damage scar (shriveled dark brown depression)
+          ctx.fillStyle = '#451a03';
+          ctx.strokeStyle = '#27272a';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.ellipse(wx, wy, 35, 12, 0, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+          
+          ctx.fillStyle = '#78350f';
+          ctx.font = '8px "Outfit", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Edge Damage', wx, wy + 24);
+        }
+      }
+      break;
+
+    case 3: // Viddha (Pierced) - Quick
+      // Transfixing holes
+      ctx.fillStyle = '#991b1b';
+      ctx.beginPath();
+      ctx.ellipse(wx - 40, wy - 15, 8, 4, Math.PI/6, 0, 2*Math.PI);
+      ctx.ellipse(wx + 40, wy + 15, 8, 4, Math.PI/6, 0, 2*Math.PI);
+      ctx.fill();
+
+      // Dotted path
+      ctx.strokeStyle = '#b91c1c';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(wx - 40, wy - 15);
+      ctx.lineTo(wx + 40, wy + 15);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      if (step === 1) {
+        // Healing pink dots
+        ctx.fillStyle = '#fda4af';
+        ctx.beginPath();
+        ctx.arc(wx - 40, wy - 15, 5, 0, 2*Math.PI);
+        ctx.arc(wx + 40, wy + 15, 5, 0, 2*Math.PI);
+        ctx.fill();
+      } else if (step === 2) {
+        // Flat dots
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(wx - 40, wy - 15, 3, 0, 2*Math.PI);
+        ctx.arc(wx + 40, wy + 15, 3, 0, 2*Math.PI);
+        ctx.fill();
+      }
+      break;
+
+    case 4: // Kshata (Lacerated) - Quick
+      // Jagged torn margins
+      ctx.fillStyle = '#991b1b';
+      ctx.beginPath();
+      ctx.moveTo(wx - 50, wy);
+      ctx.lineTo(wx - 25, wy - 12);
+      ctx.lineTo(wx, wy + 10);
+      ctx.lineTo(wx + 25, wy - 10);
+      ctx.lineTo(wx + 50, wy);
+      ctx.lineTo(wx + 25, wy + 8);
+      ctx.lineTo(wx, wy - 8);
+      ctx.lineTo(wx - 25, wy + 10);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.strokeStyle = '#7f1d1d';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      if (step === 1) {
+        // Closed wavy pink line
+        ctx.strokeStyle = '#fda4af';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(wx - 50, wy);
+        ctx.lineTo(wx - 25, wy - 4);
+        ctx.lineTo(wx, wy + 3);
+        ctx.lineTo(wx + 25, wy - 3);
+        ctx.lineTo(wx + 50, wy);
+        ctx.stroke();
+      } else if (step === 2) {
+        // Wavy white line scar
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(wx - 50, wy);
+        ctx.lineTo(wx - 25, wy - 4);
+        ctx.lineTo(wx, wy + 3);
+        ctx.lineTo(wx + 25, wy - 3);
+        ctx.lineTo(wx + 50, wy);
+        ctx.stroke();
+      }
+      break;
+
+    case 5: // Ghrishta (Abraded) - Quick
+      // Superficial scrape
+      const scrapeGrad = ctx.createRadialGradient(wx, wy, 10, wx, wy, 45);
+      scrapeGrad.addColorStop(0, 'rgba(239, 68, 68, 0.45)');
+      scrapeGrad.addColorStop(0.7, 'rgba(244, 63, 94, 0.25)');
+      scrapeGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = scrapeGrad;
+      ctx.beginPath(); ctx.ellipse(wx, wy, 50, 22, 0, 0, 2*Math.PI); ctx.fill();
+
+      // Minor blood speckles
+      ctx.fillStyle = '#b91c1c';
+      for (let i = 0; i < 15; i++) {
+        const sx = wx + (Math.random() - 0.5) * 60;
+        const sy = wy + (Math.random() - 0.5) * 20;
+        ctx.beginPath(); ctx.arc(sx, sy, 1 + Math.random()*1.5, 0, 2*Math.PI); ctx.fill();
+      }
+
+      if (step === 1) {
+        // Drying protective crust
+        ctx.fillStyle = 'rgba(180, 83, 9, 0.25)'; // brown scab tone
+        ctx.beginPath(); ctx.ellipse(wx, wy, 42, 18, 0, 0, 2*Math.PI); ctx.fill();
+      } else if (step === 2) {
+        // Completely regenerated
+        ctx.fillStyle = 'transparent';
+      }
+      break;
   }
 }

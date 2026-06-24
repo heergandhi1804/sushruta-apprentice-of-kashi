@@ -56,7 +56,55 @@ const GameState = {
     thread: 'cotton',
     tension: 50
   },
-  level3Attempts: 0
+  level3Attempts: 0,
+  // Hint system: 0 = off, 1 = ghost overlay, 2 = ghost + Socratic nudge
+  hints: {
+    gourd: 0, cloth: 0, wire: 0, bamboo: 0, doll: 0,
+    gallery: 0, level2: 0, treatment: 0
+  }
+};
+
+// Hint nudges — Socratic questions (2nd press), never literal answers
+const HINT_NUDGES = {
+  gourd:     'Which tip survived the thick rind last time?',
+  cloth:     'What happens to the gauge when you loosen the pull?',
+  wire:      'Does slowing down change how often the ring buzzes?',
+  bamboo:    'Which probe shape matches the curve of the channel?',
+  doll:      'What does the status say when you test the movement?',
+  gallery:   'What does the tool need to do — pierce, grip, cut, or hook?',
+  level2:    'What clue did STRETCH reveal about this soldier\'s tissue?',
+  treatment: 'Where are the ghost targets, and how close are your stitches?'
+};
+
+function toggleHint(levelId) {
+  Sound.click();
+  const prev = GameState.hints[levelId] || 0;
+  GameState.hints[levelId] = Math.min(2, prev + 1);
+
+  const level = GameState.hints[levelId];
+  const nudgeEl = document.getElementById(`hint-nudge-${levelId}`);
+
+  if (level === 2 && nudgeEl) {
+    nudgeEl.textContent = `💭 ${HINT_NUDGES[levelId] || ''}`;
+    nudgeEl.classList.remove('hidden');
+  }
+
+  triggerCanvasRedraw(GameState.currentScreen);
+}
+
+// Global Exam State
+const ExamState = {
+  currentCase: 0,
+  timelineStep: 0,
+  isCorrect: false,
+  selections: {
+    observation: '',
+    category: '',
+    tool: '',
+    tension: '',
+    support: '',
+    priority: ''
+  }
 };
 
 // Patients Data
@@ -116,7 +164,7 @@ function showScreen(screenId) {
     'screen-prologue', 'screen-courtyard', 'screen-gourd', 
     'screen-cloth', 'screen-bamboo', 'screen-doll', 
     'screen-gallery', 'screen-level2', 'screen-treatment', 
-    'screen-healing', 'screen-graduation'
+    'screen-healing', 'screen-graduation', 'screen-exam'
   ];
   screens.forEach(id => {
     const el = document.getElementById(id);
@@ -151,6 +199,7 @@ function triggerCanvasRedraw(screenId) {
   else if (screenId === 'screen-level2') drawDiagnosisScene(ctx, canvas);
   else if (screenId === 'screen-treatment') drawTreatmentScene(ctx, canvas);
   else if (screenId === 'screen-healing') updateHealingTimeStep();
+  else if (screenId === 'screen-exam') drawExamWoundScene(ctx, canvas, ExamState.currentCase, ExamState.timelineStep, ExamState.isCorrect);
 }
 
 // ------------------------------------------
@@ -195,8 +244,14 @@ function updateCourtyardProgress() {
 
 function enterStation(stationId) {
   Sound.click();
+  // Reset hint state for this station
+  if (GameState.hints[stationId] !== undefined) {
+    GameState.hints[stationId] = 0;
+    const nudgeEl = document.getElementById(`hint-nudge-${stationId}`);
+    if (nudgeEl) nudgeEl.classList.add('hidden');
+  }
   showScreen(`screen-${stationId}`);
-  
+
   if (stationId === 'gourd') initGourdLab();
   if (stationId === 'cloth') initClothBoard();
   if (stationId === 'bamboo') initBambooTunnel();
@@ -791,6 +846,10 @@ function updateDollCalculations() {
   if (status.includes("Pinch")) el.style.color = "var(--color-rose)";
   else if (status.includes("Loose")) el.style.color = "var(--color-orange)";
   else el.style.color = "var(--color-teal)";
+
+  // §1c: redraw canvas immediately so visual updates with slider
+  const canvas = document.getElementById('canvas-doll');
+  if (canvas) drawDollScene(canvas.getContext('2d'), canvas);
 }
 
 function testDollMovement(action) {
@@ -1071,6 +1130,8 @@ function initTreatmentCanvas() {
 function updateActiveTools() {
   Sound.click();
   updateTreatmentCalculations();
+  const canvas = document.getElementById('canvas-treatment');
+  if (canvas) drawTreatmentScene(canvas.getContext('2d'), canvas);
 }
 
 function updateTreatmentTension() {
@@ -1247,4 +1308,242 @@ function setupLevel3Scenarios() {
     updatePathway("Sushruta's Apprentice", "100%");
     unlockBadge('apprentice', 'badge-stk-apprentice');
   };
+}
+
+// ------------------------------------------
+// LEVEL 1.75: FINAL APPRENTICE EXAMINATION
+// ------------------------------------------
+const EXAM_CASES = [
+  {
+    title: "Case 1 of 6: Clean Cut",
+    isFullReasoning: true,
+    correctObservation: "clean_edge",
+    correctCategory: "Chinna",
+    correctTool: "curved",
+    correctTension: "moderate",
+    correctSupport: "surface",
+    correctPriority: "cosmetic",
+    successTip: "Excellent! The skin edges are neatly aligned with moderate tension using a curved needle. The skin layers heal with minimal raised scar tissue.",
+    day30Outcome: "Optimal Healing: Skin layers show a clean, thin scar line."
+  },
+  {
+    title: "Case 2 of 6: Narrow Penetration",
+    isFullReasoning: true,
+    correctObservation: "puncture_opening",
+    correctCategory: "Bhinna",
+    correctTool: "straight",
+    correctTension: "low",
+    correctSupport: "deep",
+    correctPriority: "cavity",
+    successTip: "Excellent! By utilizing a straight probe to explore the deep narrow channel, and closing the deep skin layers with support while keeping surface tension low, you prevent a deep cavity closure failure. The pocket heals cleanly.",
+    day30Outcome: "Optimal Healing: Deep pocket closed, surface skin layers resolved with a small scar point."
+  },
+  {
+    title: "Case 3 of 6: Flattened Impact",
+    isFullReasoning: true,
+    correctObservation: "crushed_area",
+    correctCategory: "Pichchita",
+    correctTool: "dressing",
+    correctTension: "none",
+    correctSupport: "surface",
+    correctPriority: "necrosis",
+    successTip: "Excellent! Bruised and crushed skin layers are too fragile for sutures. By avoiding stitches, choosing a medicated dressing, and applying no tension, you protect the surface skin and avoid edge damage. The tissue recovers viable blood flow.",
+    day30Outcome: "Optimal Healing: Crushed skin layers recover shape and surface heals smoothly without edge damage."
+  },
+  {
+    title: "Case 4 of 6: Transfixing Channel",
+    isFullReasoning: false,
+    correctObservation: "deep_narrow_path",
+    correctCategory: "Viddha",
+    successTip: "Correct classification! This is a pierced wound (Viddha) traversing all the way through. The channel path and exit must be verified before surface dressing.",
+    day30Outcome: "Optimal Healing: Internal path resolved cleanly."
+  },
+  {
+    title: "Case 5 of 6: Ragged Margins",
+    isFullReasoning: false,
+    correctObservation: "jagged_edge",
+    correctCategory: "Kshata",
+    successTip: "Correct classification! This is a lacerated wound (Kshata) with jagged margins. Suture must bridge uneven edges with care to prevent tearing.",
+    day30Outcome: "Optimal Healing: Jagged margins aligned and skin layers healed with a slightly wavy line."
+  },
+  {
+    title: "Case 6 of 6: Grazed Surface",
+    isFullReasoning: false,
+    correctObservation: "scraped_surface",
+    correctCategory: "Ghrishta",
+    successTip: "Correct classification! This is an abraded wound (Ghrishta) where only the outer skin layers are scraped. Medicated paste dressing and protective wrap heal it cleanly without any sutures.",
+    day30Outcome: "Optimal Healing: Scraped skin layers regenerate fully with no scarring."
+  }
+];
+
+function transitionToExam() {
+  Sound.chime();
+  showScreen('screen-exam');
+  initExam();
+}
+
+function initExam() {
+  ExamState.currentCase = 0;
+  loadExamCase();
+}
+
+function loadExamCase() {
+  const caseData = EXAM_CASES[ExamState.currentCase];
+  
+  document.getElementById('exam-case-title').textContent = caseData.title;
+  
+  // Reset fields
+  document.getElementById('exam-select-observation').value = "";
+  document.getElementById('exam-select-category').value = "";
+  document.getElementById('exam-select-tool').value = "";
+  document.getElementById('exam-select-tension').value = "";
+  document.getElementById('exam-select-support').value = "";
+  document.getElementById('exam-select-priority').value = "";
+  
+  // Reset preview
+  document.getElementById('exam-sentence-preview').textContent = 'Because I observe ____, I conclude ____.';
+  
+  // Show/hide sections
+  const treatSec = document.getElementById('exam-treatment-section');
+  if (caseData.isFullReasoning) {
+    treatSec.classList.remove('hidden');
+  } else {
+    treatSec.classList.add('hidden');
+  }
+  
+  // Reset buttons & timeline
+  document.getElementById('exam-timeline-container').classList.add('hidden');
+  document.getElementById('btn-exam-verify').classList.remove('hidden');
+  document.getElementById('btn-exam-next').classList.add('hidden');
+  
+  ExamState.timelineStep = 0;
+  ExamState.isCorrect = false;
+  
+  document.getElementById('exam-mentor-tip').textContent = "A healer observes first. Look closely at the wound margins and depth before deciding.";
+  
+  const canvas = document.getElementById('canvas-exam');
+  if (canvas) {
+    drawExamWoundScene(canvas.getContext('2d'), canvas, ExamState.currentCase, 0, 'none', false);
+  }
+  
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+}
+
+function updateExamReasoningSentence() {
+  const obsSelect = document.getElementById('exam-select-observation');
+  const catSelect = document.getElementById('exam-select-category');
+  
+  const obsVal = obsSelect.value;
+  const catVal = catSelect.value;
+  
+  const obsText = obsSelect.options[obsSelect.selectedIndex]?.text || "____";
+  const catText = catSelect.options[catSelect.selectedIndex]?.text || "____";
+  
+  const preview = document.getElementById('exam-sentence-preview');
+  if (obsVal && catVal) {
+    preview.textContent = `Because I observe that ${obsText}, I conclude it resembles a ${catText} wound.`;
+  } else {
+    preview.textContent = `Because I observe ____, I conclude ____.`;
+  }
+}
+
+function verifyExamHypothesis() {
+  const caseData = EXAM_CASES[ExamState.currentCase];
+  
+  const obs = document.getElementById('exam-select-observation').value;
+  const cat = document.getElementById('exam-select-category').value;
+  
+  if (!obs || !cat) {
+    alert("Please select your clinical observation and diagnostic category first!");
+    return;
+  }
+  
+  let isCorrect = true;
+  
+  // Check basic alignment
+  if (obs !== caseData.correctObservation || cat !== caseData.correctCategory) {
+    isCorrect = false;
+  }
+  
+  // Check treatment if it's full reasoning
+  let tool = "";
+  let tension = "";
+  let support = "";
+  let priority = "";
+  
+  if (caseData.isFullReasoning) {
+    tool = document.getElementById('exam-select-tool').value;
+    tension = document.getElementById('exam-select-tension').value;
+    support = document.getElementById('exam-select-support').value;
+    priority = document.getElementById('exam-select-priority').value;
+    
+    if (!tool || !tension || !support || !priority) {
+      alert("Please complete all treatment strategy selections!");
+      return;
+    }
+    
+    if (tool !== caseData.correctTool || tension !== caseData.correctTension || 
+        support !== caseData.correctSupport || priority !== caseData.correctPriority) {
+      isCorrect = false;
+    }
+  }
+  
+  const mentorTip = document.getElementById('exam-mentor-tip');
+  
+  if (isCorrect) {
+    Sound.success();
+    mentorTip.textContent = caseData.successTip;
+    
+    // Unlock timeline
+    document.getElementById('exam-timeline-container').classList.remove('hidden');
+    document.getElementById('btn-exam-verify').classList.add('hidden');
+    document.getElementById('btn-exam-next').classList.remove('hidden');
+    
+    ExamState.isCorrect = true;
+    setExamTimelineStep(0);
+  } else {
+    Sound.bump();
+    // Soft corrective language:
+    mentorTip.textContent = "Evidence Check: review the wound edge and depth.";
+    
+    // Redraw case with failed parameters (e.g. draws complication)
+    const canvas = document.getElementById('canvas-exam');
+    if (canvas) {
+      drawExamWoundScene(canvas.getContext('2d'), canvas, ExamState.currentCase, 0, tension || 'moderate', false);
+    }
+  }
+}
+
+function setExamTimelineStep(step) {
+  ExamState.timelineStep = step;
+  
+  // Update button active classes
+  ['btn-exam-day0', 'btn-exam-day7', 'btn-exam-day30'].forEach((id, idx) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.toggle('active', idx === step);
+    }
+  });
+  
+  // Redraw
+  const canvas = document.getElementById('canvas-exam');
+  if (canvas) {
+    const caseData = EXAM_CASES[ExamState.currentCase];
+    const tension = document.getElementById('exam-select-tension').value || 'moderate';
+    drawExamWoundScene(canvas.getContext('2d'), canvas, ExamState.currentCase, step, tension, true);
+  }
+}
+
+function advanceExamCase() {
+  ExamState.currentCase++;
+  if (ExamState.currentCase >= EXAM_CASES.length) {
+    Sound.success();
+    showScreen('screen-graduation');
+    unlockBadge('apprentice', 'badge-stk-apprentice');
+  } else {
+    Sound.chime();
+    loadExamCase();
+  }
 }
