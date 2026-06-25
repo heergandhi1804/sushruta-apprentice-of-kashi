@@ -423,8 +423,8 @@ function evaluateGourdPuncture() {
       recordGourdMatch('soft');
     }
     else if (ndl === 'straight') {
-      word = "PUNCTURED!";
-      tip = "Straight needles puncture soft items quickly.";
+      word = "SMOOTH!";
+      tip = "Straight needles push cleanly through soft tissue.";
       Sound.pierce();
       recordGourdMatch('soft');
     }
@@ -433,8 +433,8 @@ function evaluateGourdPuncture() {
     if (ndl === 'curved') { word = "STUCK!"; tip = "Curved needles struggle with thickness."; Sound.bump(); GourdLab.squashY = 12; }
     else if (ndl === 'straight') { word = "BENT!"; tip = "Straight needles bend under heavy pressure."; Sound.bump(); GourdLab.bendAngle = 0.5; }
     else {
-      word = "PUNCTURED!";
-      tip = "Triangular needles puncture thick skins cleanly.";
+      word = "SMOOTH!";
+      tip = "Triangular needles cut cleanly through tough skin.";
       Sound.pierce();
       recordGourdMatch('thick');
     }
@@ -528,9 +528,9 @@ function initClothBoard() {
 
   document.getElementById('cloth-stitch-count').textContent = 0;
   const optHint = document.getElementById('cloth-optimum-hint');
-  if (optHint) optHint.textContent = `(opt: ${cfg.optimum})`;
+  if (optHint) optHint.textContent = '';
   document.getElementById('cloth-mentor-tip').textContent =
-    `${cfg.name}: place stitches by clicking the anchor dots. Optimum is ${cfg.optimum} for this wound type.`;
+    `${cfg.name}: place stitches by clicking the anchor dots on the forearm. Press Analyze Repair when ready.`;
 
   drawClothScene(ctx, canvas);
 

@@ -531,11 +531,15 @@ function drawGourdScene(ctx, canvas) {
 
   }
 
-  // Big outcome banner
+  // Big outcome banner + dynamic effects at needle tip
   if (GourdLab.outcome) {
     const W = canvas.width, H = canvas.height;
-    const isWin = GourdLab.outcome === 'SMOOTH!' || GourdLab.outcome === 'PUNCTURED!';
+    const isWin = GourdLab.outcome === 'SMOOTH!';
     const col = isWin ? '#10b981' : '#ef4444';
+    // Get needle tip position (last drag point, or canvas center as fallback)
+    const tipPt = GourdLab.dragPoints.length > 0 ? GourdLab.dragPoints[GourdLab.dragPoints.length - 1] : { x: W/2, y: H*0.5 };
+    const tx = tipPt.x, ty = tipPt.y;
+
     ctx.save();
     ctx.fillStyle = isWin ? 'rgba(16,185,129,0.14)' : 'rgba(239,68,68,0.11)';
     ctx.fillRect(0, 0, W, H);
@@ -545,18 +549,42 @@ function drawGourdScene(ctx, canvas) {
     ctx.fillStyle = '#fff'; ctx.font = 'bold 26px Outfit';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText((isWin ? '✓ ' : '✗ ') + GourdLab.outcome, W/2, H*0.06 + H*0.085);
+
     if (GourdLab.outcome === 'TEAR!') {
-      const gcx = canvas.width/2, gcy = canvas.height * 0.5;
+      // Jagged tear lines radiating from the needle tip on the food surface
       ctx.strokeStyle = '#7f1d1d'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-      [[gcx+55,gcy-28,gcx+74,gcy+6],[gcx+74,gcy+6,gcx+50,gcy+38],[gcx+62,gcy-14,gcx+80,gcy+3]].forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();});
-    }
-    if (GourdLab.outcome === 'STUCK!') {
-      const gcx = canvas.width/2, gcy = canvas.height * 0.5;
-      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2.5;
-      for (let a = 0; a < Math.PI*2; a += Math.PI/4) {
-        ctx.beginPath(); ctx.moveTo(gcx + Math.cos(a)*60, gcy + Math.sin(a)*40); ctx.lineTo(gcx + Math.cos(a)*72, gcy + Math.sin(a)*50); ctx.stroke();
+      const tearLines = [[-8,-32,6,-52],[10,-28,28,-48],[14,8,32,22],[-12,10,-28,28],[2,-18,20,-38]];
+      tearLines.forEach(([dx1,dy1,dx2,dy2]) => {
+        ctx.beginPath(); ctx.moveTo(tx+dx1, ty+dy1); ctx.lineTo(tx+dx2, ty+dy2); ctx.stroke();
+      });
+      // Radiating crack splinters around tip
+      ctx.strokeStyle = 'rgba(150,30,10,0.5)'; ctx.lineWidth = 1.5;
+      for (let a = 0; a < Math.PI*2; a += Math.PI/5) {
+        ctx.beginPath();
+        ctx.moveTo(tx + Math.cos(a)*12, ty + Math.sin(a)*10);
+        ctx.lineTo(tx + Math.cos(a)*30, ty + Math.sin(a)*26);
+        ctx.stroke();
       }
     }
+
+    if (GourdLab.outcome === 'STUCK!') {
+      // Resistance indicator: concentric halos around the stuck needle tip
+      for (let r = 18; r <= 44; r += 13) {
+        ctx.strokeStyle = `rgba(245,158,11,${0.7 - r*0.01})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(tx, ty, r, 0, 2*Math.PI); ctx.stroke();
+      }
+      // Small inward arrows showing the material pushing back
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+      for (let a = 0; a < Math.PI*2; a += Math.PI/3) {
+        const r1 = 52, r2 = 34;
+        ctx.beginPath();
+        ctx.moveTo(tx + Math.cos(a)*r1, ty + Math.sin(a)*r1);
+        ctx.lineTo(tx + Math.cos(a)*r2, ty + Math.sin(a)*r2);
+        ctx.stroke();
+      }
+    }
+
     ctx.restore();
   }
 
@@ -682,15 +710,13 @@ function drawClothScene(ctx, canvas) {
     ctx.beginPath(); ctx.arc(a.rx, a.y, 3.5, 0, 2*Math.PI); ctx.fill();
   });
 
-  // Stitch count live badge
+  // Simple stitch count badge (no optimum revealed until Analyze)
   if (ClothBoard.placed.length > 0 && !ClothBoard.analyzed) {
     const n = ClothBoard.placed.length;
-    const col = n > cfg.optimum + 1 ? '#ef4444' : n < cfg.optimum ? '#eab308' : '#10b981';
     ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.roundRect(aR - 172, aB + 4, 170, 22, 6); ctx.fill();
-    ctx.fillStyle = col; ctx.font = 'bold 11px Outfit'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
-    const badge = n > cfg.optimum + 1 ? `${n} stitches — too many (opt: ${cfg.optimum})` : n < cfg.optimum ? `${n} stitches — too few (opt: ${cfg.optimum})` : `${n} stitches — on target!`;
-    ctx.fillText(badge, aR - 6, aB + 8);
+    ctx.fillStyle = 'rgba(0,0,0,0.50)'; ctx.beginPath(); ctx.roundRect(aR - 130, aB + 4, 128, 22, 6); ctx.fill();
+    ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 11px Outfit'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    ctx.fillText(`${n} ${n === 1 ? 'stitch' : 'stitches'} placed`, aR - 6, aB + 8);
     ctx.restore();
   }
 
