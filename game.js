@@ -701,32 +701,34 @@ function _sampleCubic(p0, p1, p2, p3, n) {
 }
 
 const WIRE_SHAPES = [
-  { name: 'Arch',        pts: _sampleQuad([0.07,0.65],[0.50,0.08],[0.93,0.65], 80) },
-  { name: 'Valley',      pts: _sampleQuad([0.07,0.35],[0.50,0.90],[0.93,0.35], 80) },
-  { name: 'S-Curve',     pts: _sampleCubic([0.07,0.25],[0.35,0.06],[0.65,0.94],[0.93,0.75], 80) },
-  { name: 'Double Hump', pts: [
-    ..._sampleQuad([0.07,0.72],[0.28,0.10],[0.50,0.70], 50),
-    ..._sampleQuad([0.50,0.70],[0.72,0.10],[0.93,0.72], 50)
+  { name: 'High Arch',     pts: _sampleQuad([0.07,0.80],[0.50,0.05],[0.93,0.80], 90) },
+  { name: 'Deep Valley',   pts: _sampleQuad([0.07,0.20],[0.50,0.95],[0.93,0.20], 90) },
+  { name: 'Tight S',       pts: _sampleCubic([0.07,0.12],[0.24,0.04],[0.76,0.96],[0.93,0.88], 90) },
+  { name: 'Triple Hump',   pts: [
+    ..._sampleQuad([0.07,0.80],[0.22,0.05],[0.36,0.78], 40),
+    ..._sampleQuad([0.36,0.78],[0.50,0.05],[0.64,0.78], 40),
+    ..._sampleQuad([0.64,0.78],[0.78,0.05],[0.93,0.80], 40)
   ]},
-  { name: 'Zigzag',      pts: [
-    ..._sampleQuad([0.07,0.50],[0.18,0.12],[0.32,0.18], 30),
-    ..._sampleQuad([0.32,0.18],[0.44,0.88],[0.55,0.82], 30),
-    ..._sampleQuad([0.55,0.82],[0.67,0.12],[0.78,0.18], 30),
-    ..._sampleQuad([0.78,0.18],[0.88,0.85],[0.93,0.50], 30)
+  { name: 'Corkscrew',     pts: [
+    ..._sampleCubic([0.07,0.50],[0.14,0.04],[0.28,0.04],[0.37,0.50], 38),
+    ..._sampleCubic([0.37,0.50],[0.46,0.96],[0.60,0.96],[0.69,0.50], 38),
+    ..._sampleCubic([0.69,0.50],[0.78,0.04],[0.88,0.04],[0.93,0.50], 30)
   ]}
 ];
 
 const BuzzWire = {
   shapeIdx: 0,
   ringX: 100, ringY: 200,
-  ringR: 24,
+  ringR: 22,
   wireR: 7,
   isBuzzing: false,
   buzzes: 0,
   active: false,
   complete: false,
   cleared: [],
-  flashTimer: 0
+  flashTimer: 0,
+  mouseOnCanvas: false,
+  goFlash: 0
 };
 
 function _ptSegDistSq(px, py, ax, ay, bx, by) {
@@ -773,36 +775,54 @@ function initBuzzWire() {
   canvas.height = canvas.clientHeight || 360;
 
   const shape = WIRE_SHAPES[BuzzWire.shapeIdx];
-  BuzzWire.ringX = shape.pts[0][0] * canvas.width;
-  BuzzWire.ringY = shape.pts[0][1] * canvas.height;
   BuzzWire.isBuzzing = false;
   BuzzWire.buzzes = 0;
   BuzzWire.active = false;
   BuzzWire.complete = false;
   BuzzWire.flashTimer = 0;
+  BuzzWire.mouseOnCanvas = false;
+  BuzzWire.goFlash = 0;
 
   document.getElementById('bamboo-collisions').textContent = '0';
   document.getElementById('bamboo-tokens-val').textContent = `${BuzzWire.cleared.length} / 3`;
   document.getElementById('bamboo-smoothness').textContent = '100%';
   document.getElementById('bamboo-mentor-tip').textContent =
-    `${shape.name}: hover over START then guide the ring to END without touching the wire.`;
+    `${shape.name} — move your cursor into the arena to begin.`;
   updateBuzzWireUI();
   drawBuzzWireScene(ctx, canvas);
+
+  canvas.onmouseenter = (e) => {
+    BuzzWire.mouseOnCanvas = true;
+    const r = canvas.getBoundingClientRect();
+    BuzzWire.ringX = e.clientX - r.left;
+    BuzzWire.ringY = e.clientY - r.top;
+    if (!BuzzWire.active)
+      document.getElementById('bamboo-mentor-tip').textContent = 'Guide the ring to the green START zone.';
+    drawBuzzWireScene(ctx, canvas);
+  };
+
+  canvas.onmouseleave = () => {
+    if (BuzzWire.active && !BuzzWire.complete) return;
+    BuzzWire.mouseOnCanvas = false;
+    drawBuzzWireScene(ctx, canvas);
+  };
 
   canvas.onmousemove = (e) => {
     if (BuzzWire.complete) return;
     const r = canvas.getBoundingClientRect();
     const mx = e.clientX - r.left, my = e.clientY - r.top;
+    BuzzWire.mouseOnCanvas = true;
     BuzzWire.ringX = mx; BuzzWire.ringY = my;
     const W = canvas.width, H = canvas.height;
 
-    // Activate when ring reaches start zone
     if (!BuzzWire.active) {
       const sp = shape.pts[0];
-      if (Math.hypot(mx - sp[0]*W, my - sp[1]*H) < BuzzWire.ringR + 22) BuzzWire.active = true;
-    }
-
-    if (BuzzWire.active) {
+      if (Math.hypot(mx - sp[0]*W, my - sp[1]*H) < BuzzWire.ringR + 20) {
+        BuzzWire.active = true;
+        BuzzWire.goFlash = 24;
+        document.getElementById('bamboo-mentor-tip').textContent = 'GO! Navigate carefully to END.';
+      }
+    } else {
       const wasBuzzing = BuzzWire.isBuzzing;
       BuzzWire.isBuzzing = checkWireTouch(mx, my, W, H);
 
@@ -815,14 +835,13 @@ function initBuzzWire() {
         document.getElementById('bamboo-collisions').textContent = BuzzWire.buzzes;
         document.getElementById('bamboo-mentor-tip').textContent =
           acc < 70
-            ? `${BuzzWire.buzzes} buzz${BuzzWire.buzzes > 1 ? 'es' : ''} — below 70%! Slow down at the bends.`
-            : `Buzz! ${acc}% accuracy — keep going carefully.`;
+            ? `${BuzzWire.buzzes} buzz${BuzzWire.buzzes > 1 ? 'es' : ''} — below 70%! Slow at the bends.`
+            : `Buzz! ${acc}% — keep steady.`;
       }
 
-      // Check end zone reached
       const ep = shape.pts[shape.pts.length - 1];
       if (getWireProgress(mx, my, W, H) > 0.90 &&
-          Math.hypot(mx - ep[0]*W, my - ep[1]*H) < BuzzWire.ringR + 28) {
+          Math.hypot(mx - ep[0]*W, my - ep[1]*H) < BuzzWire.ringR + 26) {
         BuzzWire.complete = true;
         const acc = Math.max(0, 100 - BuzzWire.buzzes * 10);
         const passed = acc >= 70;
@@ -832,7 +851,7 @@ function initBuzzWire() {
         document.getElementById('bamboo-tokens-val').textContent = `${BuzzWire.cleared.length} / 3`;
         document.getElementById('bamboo-mentor-tip').textContent = passed
           ? `✓ ${shape.name} cleared with ${acc}%! ${BuzzWire.cleared.length < 3 ? 'Pick another shape.' : 'All 3 cleared — complete the challenge!'}`
-          : `✗ ${acc}% — need ≥70% to clear. Reset and try again with fewer touches.`;
+          : `✗ ${acc}% — need ≥70% to clear. Reset and try again.`;
         if (passed) Sound.success(); else Sound.bump();
         updateBuzzWireUI();
       }

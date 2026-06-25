@@ -777,17 +777,28 @@ function drawClothScene(ctx, canvas) {
 
 function drawBuzzWireScene(ctx, canvas) {
   const W = canvas.width, H = canvas.height;
+  const t = performance.now();
   ctx.clearRect(0, 0, W, H);
-  drawBattlefield(ctx, canvas);
+
+  // Dark workshop / lab bench background
+  ctx.fillStyle = '#18181b';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(113,113,122,0.10)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 36) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 36) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  const vig = ctx.createRadialGradient(W/2, H/2, H*0.20, W/2, H/2, Math.hypot(W,H)*0.62);
+  vig.addColorStop(0, 'transparent'); vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
 
   const shape = WIRE_SHAPES[BuzzWire.shapeIdx];
   const pts = shape.pts;
 
-  // Hint: safe corridor (faint wide band showing where ring center can safely travel)
+  // Hint: safe corridor
   if (typeof GameState !== 'undefined' && (GameState.hints?.['bamboo'] || 0) >= 1) {
     ctx.save();
     ctx.lineWidth = (BuzzWire.wireR + BuzzWire.ringR) * 2;
-    ctx.strokeStyle = 'rgba(13,148,136,0.20)';
+    ctx.strokeStyle = 'rgba(13,148,136,0.18)';
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.beginPath();
     pts.forEach((p, i) => { i ? ctx.lineTo(p[0]*W, p[1]*H) : ctx.moveTo(p[0]*W, p[1]*H); });
@@ -795,70 +806,109 @@ function drawBuzzWireScene(ctx, canvas) {
     ctx.restore();
   }
 
-  // Wire — 4-layer copper rendering
+  // Wire — 4-layer copper
   ctx.save();
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const wirePath = () => {
     ctx.beginPath();
     pts.forEach((p, i) => { i ? ctx.lineTo(p[0]*W, p[1]*H) : ctx.moveTo(p[0]*W, p[1]*H); });
   };
-  ctx.lineWidth = 20; ctx.strokeStyle = 'rgba(0,0,0,0.28)'; wirePath(); ctx.stroke();
+  ctx.lineWidth = 20; ctx.strokeStyle = 'rgba(0,0,0,0.50)'; wirePath(); ctx.stroke();
   ctx.lineWidth = 14; ctx.strokeStyle = '#92400e'; wirePath(); ctx.stroke();
   ctx.lineWidth = 8;  ctx.strokeStyle = '#b45309'; wirePath(); ctx.stroke();
   ctx.lineWidth = 4;  ctx.strokeStyle = '#f59e0b'; wirePath(); ctx.stroke();
-  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,236,153,0.6)'; wirePath(); ctx.stroke();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,236,153,0.70)'; wirePath(); ctx.stroke();
   ctx.restore();
 
-  // START zone
-  const sp = pts[0];
+  // START zone — pulses until activated, then stays solid
+  const sp = pts[0], sx = sp[0]*W, sy = sp[1]*H;
+  const pulse = BuzzWire.active ? 1 : 0.55 + 0.45 * Math.sin(t / 260);
   ctx.save();
-  ctx.fillStyle = BuzzWire.active ? 'rgba(16,185,129,0.5)' : '#10b981';
+  // Beacon rings when mouse on canvas but not yet active
+  if (!BuzzWire.active && BuzzWire.mouseOnCanvas) {
+    for (let ring = 0; ring < 3; ring++) {
+      const phase = ((t / 700 + ring * 0.33) % 1);
+      const r2 = 22 + phase * 34;
+      const al = (1 - phase) * 0.55;
+      ctx.strokeStyle = `rgba(16,185,129,${al})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(sx, sy, r2, 0, 2*Math.PI); ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = pulse;
+  ctx.fillStyle = BuzzWire.active ? 'rgba(16,185,129,0.45)' : '#10b981';
   ctx.strokeStyle = '#065f46'; ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.arc(sp[0]*W, sp[1]*H, 22, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(sx, sy, 22, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+  ctx.globalAlpha = 1;
   ctx.fillStyle = '#fff'; ctx.font = 'bold 8px Outfit'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('START', sp[0]*W, sp[1]*H);
+  ctx.fillText('START', sx, sy);
   ctx.restore();
 
   // END zone
-  const ep = pts[pts.length - 1];
+  const ep = pts[pts.length - 1], ex = ep[0]*W, ey = ep[1]*H;
   const endCleared = BuzzWire.complete && BuzzWire.cleared.includes(BuzzWire.shapeIdx);
   ctx.save();
   ctx.fillStyle = endCleared ? '#10b981' : '#d97706';
   ctx.strokeStyle = '#92400e'; ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.arc(ep[0]*W, ep[1]*H, 22, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(ex, ey, 22, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
   ctx.fillStyle = '#fff'; ctx.font = 'bold 8px Outfit'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('END', ep[0]*W, ep[1]*H);
+  ctx.fillText('END', ex, ey);
   ctx.restore();
 
-  // Buzz flash red overlay
+  // "Move cursor in" instruction overlay (before mouse enters)
+  if (!BuzzWire.mouseOnCanvas) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.62)'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,0.90)';
+    ctx.font = 'bold 15px Outfit'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Move your cursor into this panel to begin', W/2, H/2 - 13);
+    ctx.font = '11px Outfit'; ctx.fillStyle = 'rgba(255,255,255,0.50)';
+    ctx.fillText('Navigate the ring: START → END without touching the wire', W/2, H/2 + 12);
+    ctx.restore();
+  }
+
+  // Buzz flash
   if (BuzzWire.flashTimer > 0) {
     ctx.fillStyle = `rgba(239,68,68,${BuzzWire.flashTimer * 0.022})`;
     ctx.fillRect(0, 0, W, H);
   }
 
-  // Ring (silver metallic circle following cursor)
-  const rx = BuzzWire.ringX, ry = BuzzWire.ringY;
-  ctx.save();
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = BuzzWire.isBuzzing ? '#ef4444' : '#d1d5db';
-  ctx.shadowColor  = BuzzWire.isBuzzing ? '#ef4444' : 'rgba(150,150,150,0.5)';
-  ctx.shadowBlur   = BuzzWire.isBuzzing ? 18 : 5;
-  ctx.beginPath(); ctx.arc(rx, ry, BuzzWire.ringR, 0, 2*Math.PI); ctx.stroke();
-  // Inner shine arc
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = BuzzWire.isBuzzing ? 'rgba(254,202,202,0.55)' : 'rgba(255,255,255,0.55)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.arc(rx - BuzzWire.ringR*0.18, ry - BuzzWire.ringR*0.18, BuzzWire.ringR*0.45, 0.7, 1.9);
-  ctx.stroke();
-  ctx.restore();
+  // GO! flash (fades over 24 frames of mouse movement)
+  if (BuzzWire.goFlash > 0) {
+    const ga = BuzzWire.goFlash / 24;
+    ctx.save();
+    ctx.fillStyle = `rgba(16,185,129,${ga * 0.20})`; ctx.fillRect(0, 0, W, H);
+    ctx.shadowColor = '#10b981'; ctx.shadowBlur = 24;
+    ctx.fillStyle = `rgba(255,255,255,${ga})`; ctx.font = 'bold 52px Outfit';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('GO!', W/2, H/2);
+    ctx.restore();
+    BuzzWire.goFlash--;
+  }
 
-  // Shape label (top-left)
+  // Ring (only when mouse on canvas)
+  if (BuzzWire.mouseOnCanvas && !BuzzWire.complete) {
+    const rx = BuzzWire.ringX, ry = BuzzWire.ringY;
+    ctx.save();
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = BuzzWire.isBuzzing ? '#ef4444' : '#e4e4e7';
+    ctx.shadowColor  = BuzzWire.isBuzzing ? '#ef4444' : 'rgba(220,220,220,0.5)';
+    ctx.shadowBlur   = BuzzWire.isBuzzing ? 18 : 6;
+    ctx.beginPath(); ctx.arc(rx, ry, BuzzWire.ringR, 0, 2*Math.PI); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = BuzzWire.isBuzzing ? 'rgba(254,202,202,0.55)' : 'rgba(255,255,255,0.50)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(rx - BuzzWire.ringR*0.18, ry - BuzzWire.ringR*0.18, BuzzWire.ringR*0.45, 0.7, 1.9);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Labels
   ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.fillStyle = 'rgba(255,255,255,0.60)';
   ctx.font = 'bold 11px Cinzel'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
   ctx.fillText(shape.name.toUpperCase(), 10, 8);
-  // Live accuracy (top-right) once active
   if (BuzzWire.active) {
     const acc = Math.max(0, 100 - BuzzWire.buzzes * 10);
     ctx.fillStyle = acc >= 70 ? '#34d399' : acc >= 50 ? '#fbbf24' : '#f87171';
@@ -875,8 +925,7 @@ function drawBuzzWireScene(ctx, canvas) {
     ctx.fillStyle = passed ? 'rgba(16,185,129,0.14)' : 'rgba(239,68,68,0.12)';
     ctx.fillRect(0, 0, W, H);
     const col = passed ? '#10b981' : '#ef4444';
-    ctx.shadowColor = col; ctx.shadowBlur = 16;
-    ctx.fillStyle = col;
+    ctx.shadowColor = col; ctx.shadowBlur = 16; ctx.fillStyle = col;
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(W*0.18, H*0.06, W*0.64, H*0.20, 10);
     else ctx.rect(W*0.18, H*0.06, W*0.64, H*0.20);
