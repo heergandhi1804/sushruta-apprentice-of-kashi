@@ -253,7 +253,7 @@ function enterStation(stationId) {
   showScreen(`screen-${stationId}`);
 
   if (stationId === 'gourd') initGourdLab();
-  if (stationId === 'cloth') initClothBoard();
+  if (stationId === 'cloth') { ClothBoard.analyzedTypes = []; initClothBoard(); }
   if (stationId === 'bamboo') initBambooTunnel();
   if (stationId === 'doll') initDollStation();
 }
@@ -323,14 +323,16 @@ function goHome() {
 // YARD 1: GOURD POP
 // ------------------------------------------
 const GourdLab = {
-  material: 'soft', 
+  material: 'soft',
   needle: 'curved',
   isDrawing: false,
   dragPoints: [],
   outcome: "",
   squashY: 0,
   bendAngle: 0,
-  matchedItems: [] // track successfully matched items: 'soft', 'thick', 'melon'
+  tearPath: [],     // portion of drag that was inside food — rendered as scar
+  stuckPoint: null, // first food-entry point — needle stays lodged here
+  matchedItems: []
 };
 
 function initGourdLab() {
@@ -341,6 +343,8 @@ function initGourdLab() {
   GourdLab.outcome = "";
   GourdLab.squashY = 0;
   GourdLab.bendAngle = 0;
+  GourdLab.tearPath = [];
+  GourdLab.stuckPoint = null;
   
   document.getElementById('gourd-mentor-tip').textContent = "Observe item thickness first.";
   updateGourdUI();
@@ -451,6 +455,26 @@ function evaluateGourdPuncture() {
 
   GourdLab.outcome = word;
   document.getElementById('gourd-mentor-tip').textContent = tip;
+
+  const gCanvas = document.getElementById('canvas-gourd');
+
+  if (word === 'STUCK!') {
+    // Trim drag path to stop at first food-entry point so needle looks lodged
+    const entryIdx = GourdLab.dragPoints.findIndex(p => isInsideGourd(p.x, p.y, gCanvas));
+    if (entryIdx >= 0) {
+      // Keep a few points past entry so the tip appears embedded, not at the surface
+      GourdLab.dragPoints = GourdLab.dragPoints.slice(0, Math.min(entryIdx + 5, GourdLab.dragPoints.length));
+    }
+    GourdLab.stuckPoint = GourdLab.dragPoints[GourdLab.dragPoints.length - 1] || null;
+  } else {
+    GourdLab.stuckPoint = null;
+  }
+
+  if (word === 'TEAR!') {
+    GourdLab.tearPath = GourdLab.dragPoints.filter(p => isInsideGourd(p.x, p.y, gCanvas));
+  } else {
+    GourdLab.tearPath = [];
+  }
 }
 
 function recordGourdMatch(item) {
@@ -500,10 +524,12 @@ const WOUNDS = {
 
 const ClothBoard = {
   woundType: 'clean',
-  anchors: [],      // [{y, lx, rx}] computed per wound on init
-  placed: [],       // indices of anchors with a stitch
+  placed: [],          // [{x1,y1,x2,y2}] free-hand stitches
   tension: 50,
-  analyzed: false
+  analyzed: false,
+  analyzedTypes: [],   // wound types analyzed this session
+  drawStart: null,     // current in-progress stitch start
+  drawCurrent: null    // current in-progress stitch end (mouse position)
 };
 
 function initClothBoard() {
@@ -512,47 +538,57 @@ function initClothBoard() {
   canvas.width = canvas.clientWidth || 600;
   canvas.height = canvas.clientHeight || 360;
 
-  const W = canvas.width, H = canvas.height, midX = W / 2;
   const cfg = WOUNDS[ClothBoard.woundType];
   ClothBoard.placed = [];
   ClothBoard.analyzed = false;
-
-  // anchor rows evenly spaced down the wound; jagged offsets left/right lips
-  ClothBoard.anchors = [];
-  const top = H * 0.18, bot = H * 0.82, step = (bot - top) / (cfg.rows - 1);
-  for (let i = 0; i < cfg.rows; i++) {
-    const y = top + i * step;
-    const j = cfg.jitter ? (Math.sin(i * 2.3) * cfg.jitter) : 0;
-    ClothBoard.anchors.push({ y, lx: midX - 16 - Math.abs(j), rx: midX + 16 + Math.abs(j) });
-  }
+  ClothBoard.drawStart = null;
+  ClothBoard.drawCurrent = null;
 
   document.getElementById('cloth-stitch-count').textContent = 0;
   const optHint = document.getElementById('cloth-optimum-hint');
   if (optHint) optHint.textContent = '';
   document.getElementById('cloth-mentor-tip').textContent =
-    `${cfg.name}: place stitches by clicking the anchor dots on the forearm. Press Analyze Repair when ready.`;
+    `${cfg.name}: drag across the wound to place a suture. Press Analyze Repair when ready.`;
+  updateClothProgress();
 
   drawClothScene(ctx, canvas);
 
   canvas.onmousedown = (e) => {
     if (ClothBoard.analyzed) return;
     const r = canvas.getBoundingClientRect();
-    const mx = e.clientX - r.left, my = e.clientY - r.top;
-    let best = -1, bd = 26;
-    ClothBoard.anchors.forEach((a, i) => {
-      const d = Math.abs(my - a.y) + Math.abs(mx - (a.lx + a.rx) / 2) * 0.3;
-      if (d < bd) { bd = d; best = i; }
-    });
-    if (best >= 0) {
-      const at = ClothBoard.placed.indexOf(best);
-      if (at >= 0) { ClothBoard.placed.splice(at, 1); Sound.bump(); }
-      else { ClothBoard.placed.push(best); Sound.pierce(); }
-      document.getElementById('cloth-stitch-count').textContent = ClothBoard.placed.length;
-      drawClothScene(ctx, canvas);
-    }
+    ClothBoard.drawStart = { x: e.clientX - r.left, y: e.clientY - r.top };
+    ClothBoard.drawCurrent = { ...ClothBoard.drawStart };
   };
-  canvas.onmousemove = null;
-  canvas.onmouseup = null;
+
+  canvas.onmousemove = (e) => {
+    if (!ClothBoard.drawStart) return;
+    const r = canvas.getBoundingClientRect();
+    ClothBoard.drawCurrent = { x: e.clientX - r.left, y: e.clientY - r.top };
+    drawClothScene(ctx, canvas);
+  };
+
+  canvas.onmouseup = (e) => {
+    if (!ClothBoard.drawStart) return;
+    const r = canvas.getBoundingClientRect();
+    const end = { x: e.clientX - r.left, y: e.clientY - r.top };
+    const dist = Math.hypot(end.x - ClothBoard.drawStart.x, end.y - ClothBoard.drawStart.y);
+    if (dist > 18) {
+      ClothBoard.placed.push({ x1: ClothBoard.drawStart.x, y1: ClothBoard.drawStart.y, x2: end.x, y2: end.y });
+      Sound.pierce();
+      document.getElementById('cloth-stitch-count').textContent = ClothBoard.placed.length;
+    }
+    ClothBoard.drawStart = null;
+    ClothBoard.drawCurrent = null;
+    drawClothScene(ctx, canvas);
+  };
+}
+
+function updateClothProgress() {
+  const n = ClothBoard.analyzedTypes.length;
+  const el = document.getElementById('cloth-progress');
+  if (el) el.textContent = `Wounds studied: ${n} / 3`;
+  const btn = document.getElementById('btn-complete-cloth');
+  if (btn) btn.disabled = n < 3;
 }
 
 function selectWoundType(type) {
@@ -573,38 +609,40 @@ function updateClothTension() {
 }
 
 function analyzeRepair() {
+  if (ClothBoard.analyzed) return; // already analyzed this wound type
+
   const canvas = document.getElementById('canvas-cloth');
   const ctx = canvas.getContext('2d');
   const cfg = WOUNDS[ClothBoard.woundType];
   const n = ClothBoard.placed.length;
 
-  if (ClothBoard.analyzed) { completeStation('cloth'); return; }
-
-  // spacing evenness: variance of gaps between sorted placed rows
-  const idx = [...ClothBoard.placed].sort((a, b) => a - b);
+  // Evenness: variance of stitch Y-positions relative to wound height
+  const H = canvas.height;
+  const wY1 = H * 0.15, wY2 = H * 0.85;
+  const yPos = ClothBoard.placed.map(s => (s.y1 + s.y2) / 2).sort((a, b) => a - b);
   let evenness = 1;
-  if (idx.length > 1) {
-    const gaps = idx.slice(1).map((v, i) => v - idx[i]);
-    const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
-    const varc = gaps.reduce((a, g) => a + (g - mean) ** 2, 0) / gaps.length;
-    evenness = Math.max(0, 1 - varc / 4);
+  if (n > 1) {
+    const normalGaps = yPos.slice(1).map((v, i) => (v - yPos[i]) / (wY2 - wY1));
+    const meanG = normalGaps.reduce((a, b) => a + b, 0) / normalGaps.length;
+    const varc = normalGaps.reduce((a, g) => a + (g - meanG) ** 2, 0) / normalGaps.length;
+    evenness = Math.max(0, 1 - varc * 25);
   }
   const tOK = ClothBoard.tension >= cfg.optTension[0] && ClothBoard.tension <= cfg.optTension[1];
   const countDelta = Math.abs(n - cfg.optimum);
 
   let msg;
   if (n === 0) {
-    msg = `Evidence: No stitches placed. Try adding some before analyzing — optimum for ${cfg.name} is ${cfg.optimum} stitches.`;
+    msg = `Evidence: No stitches placed. Drag across the wound to add sutures — optimum for ${cfg.name} is ${cfg.optimum}.`;
   } else if (cfg.shallow && n > 2) {
     msg = `Evidence: ${n} stitches is too many for a shallow graze. Optimum is 1 — extra stitches only pinch healing tissue.`;
   } else if (n > cfg.optimum + 2) {
-    msg = `Evidence: ${n} stitches placed, but optimum for ${cfg.name} is ${cfg.optimum}. More stitches beyond optimum creates tension and restricts circulation.`;
+    msg = `Evidence: ${n} stitches placed, but optimum for ${cfg.name} is ${cfg.optimum}. Excess stitches restrict circulation.`;
   } else if (n > cfg.optimum) {
-    msg = `Pattern Noticed: ${n} stitches is ${n - cfg.optimum} more than the optimum of ${cfg.optimum} for this ${cfg.name}. Even spacing matters more than extra stitches.`;
+    msg = `Pattern Noticed: ${n} stitches is ${n - cfg.optimum} more than the optimum of ${cfg.optimum} for ${cfg.name}. Even spacing matters more than quantity.`;
   } else if (n < cfg.optimum - 1) {
     msg = `Evidence: Only ${n} ${n === 1 ? 'stitch' : 'stitches'} placed. This ${cfg.name} needs ${cfg.optimum} — too few leaves gaps and lets edges pull apart.`;
   } else if (!tOK && ClothBoard.tension > cfg.optTension[1]) {
-    msg = `Pattern Noticed: Tension at ${ClothBoard.tension}% is too high (optimum: ${cfg.optTension[0]}–${cfg.optTension[1]}%). High tension puckers the skin and slows healing.`;
+    msg = `Pattern Noticed: Tension at ${ClothBoard.tension}% is too high (optimum: ${cfg.optTension[0]}–${cfg.optTension[1]}%). High tension puckers the skin.`;
   } else if (!tOK) {
     msg = `Pattern Noticed: Tension at ${ClothBoard.tension}% is too low (optimum: ${cfg.optTension[0]}–${cfg.optTension[1]}%). Low tension leaves gaps between wound edges.`;
   } else if (countDelta === 0 && evenness > 0.6) {
@@ -615,12 +653,27 @@ function analyzeRepair() {
 
   document.getElementById('cloth-mentor-tip').textContent = msg;
   ClothBoard.analyzed = true;
+
+  // Record this wound type as analyzed
+  if (!ClothBoard.analyzedTypes.includes(ClothBoard.woundType)) {
+    ClothBoard.analyzedTypes.push(ClothBoard.woundType);
+  }
+  updateClothProgress();
   drawClothScene(ctx, canvas);
 }
 
 function clearStitches() {
   Sound.bump();
-  initClothBoard();
+  ClothBoard.placed = [];
+  ClothBoard.analyzed = false;
+  ClothBoard.drawStart = null;
+  ClothBoard.drawCurrent = null;
+  const cfg = WOUNDS[ClothBoard.woundType];
+  document.getElementById('cloth-stitch-count').textContent = 0;
+  document.getElementById('cloth-mentor-tip').textContent =
+    `${cfg.name}: drag across the wound to place a suture. Press Analyze Repair when ready.`;
+  const canvas = document.getElementById('canvas-cloth');
+  drawClothScene(canvas.getContext('2d'), canvas);
 }
 
 // ------------------------------------------

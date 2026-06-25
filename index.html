@@ -259,7 +259,7 @@
               <!-- Mentor Quote -->
               <div class="live-feed-card mentor-quote-box" style="margin-top: 16px;">
                 <h5>Sushruta Mentor</h5>
-                <p id="cloth-mentor-tip">"Place stitches by clicking anchor dots."</p>
+                <p id="cloth-mentor-tip">"Drag across the wound to place a suture."</p>
               </div>
             </div>
 
@@ -271,6 +271,10 @@
               </button>
               <button onclick="analyzeRepair()" class="cartoon-btn primary" style="width: 100%; justify-content: center;">
                 Analyze Repair
+              </button>
+              <p id="cloth-progress" style="text-align:center; font-size:0.7rem; font-weight:700; opacity:0.6; margin:2px 0;">Wounds studied: 0 / 3</p>
+              <button id="btn-complete-cloth" onclick="completeStation('cloth')" class="cartoon-btn primary" disabled style="width: 100%; justify-content: center;">
+                Complete Challenge
               </button>
             </div>
           </div>
