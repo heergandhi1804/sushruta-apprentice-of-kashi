@@ -774,7 +774,7 @@ const WIRE_SHAPES = [
 const BuzzWire = {
   shapeIdx: 0,
   ringX: 100, ringY: 200,
-  ringR: 22,
+  ringR: 16,   // smaller ring → tighter corridor
   wireR: 7,
   isBuzzing: false,
   buzzes: 0,
@@ -783,7 +783,9 @@ const BuzzWire = {
   cleared: [],
   flashTimer: 0,
   mouseOnCanvas: false,
-  goFlash: 0
+  goFlash: 0,
+  maxProgress: 0,  // monotonically increasing, only updates near wire
+  graceFrames: 0   // collision-free window right after START
 };
 
 function _ptSegDistSq(px, py, ax, ay, bx, by) {
@@ -837,6 +839,8 @@ function initBuzzWire() {
   BuzzWire.flashTimer = 0;
   BuzzWire.mouseOnCanvas = false;
   BuzzWire.goFlash = 0;
+  BuzzWire.maxProgress = 0;
+  BuzzWire.graceFrames = 0;
 
   document.getElementById('bamboo-collisions').textContent = '0';
   document.getElementById('bamboo-tokens-val').textContent = `${BuzzWire.cleared.length} / 3`;
@@ -872,31 +876,47 @@ function initBuzzWire() {
 
     if (!BuzzWire.active) {
       const sp = shape.pts[0];
-      if (Math.hypot(mx - sp[0]*W, my - sp[1]*H) < BuzzWire.ringR + 20) {
+      if (Math.hypot(mx - sp[0]*W, my - sp[1]*H) < BuzzWire.ringR + 18) {
         BuzzWire.active = true;
+        BuzzWire.graceFrames = 12;  // no buzz penalty while leaving START zone
         BuzzWire.goFlash = 24;
         document.getElementById('bamboo-mentor-tip').textContent = 'GO! Navigate carefully to END.';
       }
     } else {
-      const wasBuzzing = BuzzWire.isBuzzing;
-      BuzzWire.isBuzzing = checkWireTouch(mx, my, W, H);
-
-      if (BuzzWire.isBuzzing && !wasBuzzing) {
-        BuzzWire.buzzes++;
-        BuzzWire.flashTimer = 14;
-        Sound.bump();
-        const acc = Math.max(0, 100 - BuzzWire.buzzes * 10);
-        document.getElementById('bamboo-smoothness').textContent = `${acc}%`;
-        document.getElementById('bamboo-collisions').textContent = BuzzWire.buzzes;
-        document.getElementById('bamboo-mentor-tip').textContent =
-          acc < 70
-            ? `${BuzzWire.buzzes} buzz${BuzzWire.buzzes > 1 ? 'es' : ''} — below 70%! Slow at the bends.`
-            : `Buzz! ${acc}% — keep steady.`;
+      // Grace period: collision detected but not penalised right after START
+      if (BuzzWire.graceFrames > 0) {
+        BuzzWire.graceFrames--;
+        BuzzWire.isBuzzing = false;
+      } else {
+        const wasBuzzing = BuzzWire.isBuzzing;
+        BuzzWire.isBuzzing = checkWireTouch(mx, my, W, H);
+        if (BuzzWire.isBuzzing && !wasBuzzing) {
+          BuzzWire.buzzes++;
+          BuzzWire.flashTimer = 14;
+          Sound.bump();
+          const acc = Math.max(0, 100 - BuzzWire.buzzes * 10);
+          document.getElementById('bamboo-smoothness').textContent = `${acc}%`;
+          document.getElementById('bamboo-collisions').textContent = BuzzWire.buzzes;
+          document.getElementById('bamboo-mentor-tip').textContent =
+            acc < 70
+              ? `${BuzzWire.buzzes} buzz${BuzzWire.buzzes > 1 ? 'es' : ''} — below 70%! Slow at the bends.`
+              : `Buzz! ${acc}% — keep steady.`;
+        }
       }
 
+      // Progress: only advance when ring is actually near the wire (prevents START→END skip)
+      const curProg = getWireProgress(mx, my, W, H);
+      const nearIdx = Math.min(Math.round(curProg * (shape.pts.length - 1)), shape.pts.length - 1);
+      const nearPt = shape.pts[nearIdx];
+      const distToWire = Math.hypot(mx - nearPt[0]*W, my - nearPt[1]*H);
+      if (distToWire < (BuzzWire.ringR + BuzzWire.wireR) * 2.4 && curProg > BuzzWire.maxProgress) {
+        BuzzWire.maxProgress = curProg;
+      }
+
+      // Completion: must have reached 92% of path AND be physically near the END zone
       const ep = shape.pts[shape.pts.length - 1];
-      if (getWireProgress(mx, my, W, H) > 0.90 &&
-          Math.hypot(mx - ep[0]*W, my - ep[1]*H) < BuzzWire.ringR + 26) {
+      if (BuzzWire.maxProgress > 0.92 &&
+          Math.hypot(mx - ep[0]*W, my - ep[1]*H) < BuzzWire.ringR + 20) {
         BuzzWire.complete = true;
         const acc = Math.max(0, 100 - BuzzWire.buzzes * 10);
         const passed = acc >= 70;
