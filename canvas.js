@@ -772,120 +772,120 @@ function drawClothScene(ctx, canvas) {
 }
 
 // ------------------------------------------
-// YARD 3: BAMBOO MAZE
+// YARD 3: BUZZ WIRE CHALLENGE
 // ------------------------------------------
 
-// shared channel centerline (1.5 gentle cycles), relative to canvas
-function bambooCenterY(x, canvas) {
-  const H = canvas.height || 360;
-  return H / 2 + H * 0.20 * Math.sin((x / (canvas.width || 600)) * Math.PI * 2 * 1.5);
-}
-
-// a real lotus: layered petals + golden seed center
-function drawLotus(ctx, x, y, scale, t) {
-  ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale); ctx.rotate(Math.sin(t || 0) * 0.05);
-  const petal = (len, wid, fill, stroke) => {
-    ctx.beginPath(); ctx.moveTo(0, 0);
-    ctx.quadraticCurveTo(wid, -len * 0.55, 0, -len);
-    ctx.quadraticCurveTo(-wid, -len * 0.55, 0, 0); ctx.closePath();
-    ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 0.8; ctx.strokeStyle = stroke; ctx.stroke();
-  };
-  for (let i = 0; i < 8; i++) { ctx.save(); ctx.rotate(i * Math.PI / 4 + Math.PI / 8); petal(13, 5, '#f9a8d4', '#db2777'); ctx.restore(); }
-  for (let i = 0; i < 6; i++) { ctx.save(); ctx.rotate(i * Math.PI / 3); petal(11, 4.5, '#fde7f0', '#ec4899'); ctx.restore(); }
-  const g = ctx.createRadialGradient(0, 0, 1, 0, 0, 5); g.addColorStop(0, '#fde68a'); g.addColorStop(1, '#d97706');
-  ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, 2 * Math.PI); ctx.fillStyle = g; ctx.fill();
-  ctx.fillStyle = '#92400e';
-  for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; ctx.beginPath(); ctx.arc(Math.cos(a) * 2, Math.sin(a) * 2, 0.7, 0, 2 * Math.PI); ctx.fill(); }
-  ctx.restore();
-}
-
-function drawBambooScene(ctx, canvas) {
-  const W = canvas.width, H = canvas.height, t = performance.now() / 600;
+function drawBuzzWireScene(ctx, canvas) {
+  const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
-  ctx.save();
-  if (BambooTunnel.shake > 0) { ctx.translate((Math.random() - .5) * BambooTunnel.shake, (Math.random() - .5) * BambooTunnel.shake); BambooTunnel.shake -= 1; }
+  drawBattlefield(ctx, canvas);
 
-  // warm parchment surround
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#f7efdf'); bg.addColorStop(1, '#efe2c8');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const shape = WIRE_SHAPES[BuzzWire.shapeIdx];
+  const pts = shape.pts;
 
-  const lumen = H * 0.12, wall = H * 0.14;
-  const pts = []; for (let x = 0; x <= W; x += 6) pts.push({ x, y: bambooCenterY(x, canvas) });
-
-  // bamboo wall bands offset from centerline
-  const bambooWall = (sign) => {
-    ctx.beginPath();
-    pts.forEach((p, i) => { const y = p.y + sign * (lumen + wall); i ? ctx.lineTo(p.x, y) : ctx.moveTo(p.x, y); });
-    for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; ctx.lineTo(p.x, p.y + sign * lumen); }
-    ctx.closePath();
-    const wg = ctx.createLinearGradient(0, 0, 0, H);
-    wg.addColorStop(0, '#3f6212'); wg.addColorStop(0.5, '#65a30d'); wg.addColorStop(1, '#365314');
-    ctx.fillStyle = wg; ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = '#2f4310'; ctx.stroke();
-    // node rings every ~70px
-    ctx.strokeStyle = 'rgba(20,40,8,0.55)'; ctx.lineWidth = 2.5;
-    for (let x = 40; x < W; x += 70) {
-      const cy = bambooCenterY(x, canvas);
-      ctx.beginPath(); ctx.moveTo(x, cy + sign * lumen); ctx.lineTo(x, cy + sign * (lumen + wall)); ctx.stroke();
-    }
-    // glossy highlight near lumen edge
-    ctx.beginPath();
-    pts.forEach((p, i) => { const y = p.y + sign * (lumen + 3); i ? ctx.lineTo(p.x, y) : ctx.moveTo(p.x, y); });
-    ctx.strokeStyle = 'rgba(190,242,100,0.6)'; ctx.lineWidth = 2; ctx.stroke();
-  };
-  bambooWall(-1); bambooWall(1);
-
-  // inner channel floor (soft inner shadow — cutaway tube)
-  ctx.beginPath();
-  pts.forEach((p, i) => { const y = p.y - lumen; i ? ctx.lineTo(p.x, y) : ctx.moveTo(p.x, y); });
-  for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i].x, pts[i].y + lumen);
-  ctx.closePath();
-  const fg = ctx.createLinearGradient(0, H / 2 - lumen, 0, H / 2 + lumen);
-  fg.addColorStop(0, 'rgba(0,0,0,0.10)'); fg.addColorStop(0.5, 'rgba(255,255,255,0.06)'); fg.addColorStop(1, 'rgba(0,0,0,0.10)');
-  ctx.fillStyle = fg; ctx.fill();
-
-  // hint corridor (faint centerline when hint on)
+  // Hint: safe corridor (faint wide band showing where ring center can safely travel)
   if (typeof GameState !== 'undefined' && (GameState.hints?.['bamboo'] || 0) >= 1) {
-    ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
-    ctx.strokeStyle = 'rgba(13,148,136,0.35)'; ctx.lineWidth = 3; ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.save();
+    ctx.lineWidth = (BuzzWire.wireR + BuzzWire.ringR) * 2;
+    ctx.strokeStyle = 'rgba(13,148,136,0.20)';
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    pts.forEach((p, i) => { i ? ctx.lineTo(p[0]*W, p[1]*H) : ctx.moveTo(p[0]*W, p[1]*H); });
+    ctx.stroke();
+    ctx.restore();
   }
 
-  // START / EXIT pads
-  const sy = bambooCenterY(40, canvas), ey = bambooCenterY(W, canvas);
-  ctx.fillStyle = '#10b981'; ctx.beginPath(); ctx.arc(40, sy, 16, 0, 2 * Math.PI); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 8px Outfit'; ctx.textAlign = 'center'; ctx.fillText('START', 40, sy + 3);
-  ctx.fillStyle = '#db2777'; ctx.beginPath(); ctx.arc(W - 40, ey, 16, 0, 2 * Math.PI); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.fillText('EXIT', W - 40, ey + 3);
-
-  // lotuses (real layered flowers)
-  BambooTunnel.lotuses.forEach(l => { if (!l.collected) drawLotus(ctx, l.x, l.y, 1, t + l.x); });
-
-  // curved-probe smooth trail
-  if (GameState.activeProbe === 'curved' && BambooTunnel.trail.length > 1) {
-    ctx.beginPath(); BambooTunnel.trail.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
-    ctx.strokeStyle = 'rgba(20,184,166,0.45)'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke();
-  }
-
-  // sparks
-  if (BambooTunnel.sparkTimer > 0) {
-    const { sparkX: sx, sparkY: sxy } = BambooTunnel; ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
-    for (let a = 0; a < Math.PI * 2; a += Math.PI / 3) { ctx.beginPath(); ctx.moveTo(sx, sxy); ctx.lineTo(sx + Math.cos(a) * 11, sxy + Math.sin(a) * 11); ctx.stroke(); }
-    BambooTunnel.sparkTimer--;
-  }
-
-  // probe (metal base + shape-specific tip)
-  const px = BambooTunnel.probeX, py = BambooTunnel.probeY;
-  ctx.fillStyle = '#e5e7eb'; ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.arc(px, py, BambooTunnel.probeRadius, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
-  ctx.save(); ctx.translate(px, py); ctx.strokeStyle = '#be185d'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-  ctx.beginPath();
-  if (GameState.activeProbe === 'straight') { ctx.moveTo(-12, 0); ctx.lineTo(13, 0); }
-  else if (GameState.activeProbe === 'curved') { ctx.arc(2, 0, 9, -Math.PI / 2, Math.PI / 2); }
-  else { ctx.moveTo(-10, 6); ctx.lineTo(6, 6); ctx.quadraticCurveTo(13, 6, 12, -3); }
-  ctx.stroke(); ctx.restore();
-
+  // Wire — 4-layer copper rendering
+  ctx.save();
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const wirePath = () => {
+    ctx.beginPath();
+    pts.forEach((p, i) => { i ? ctx.lineTo(p[0]*W, p[1]*H) : ctx.moveTo(p[0]*W, p[1]*H); });
+  };
+  ctx.lineWidth = 20; ctx.strokeStyle = 'rgba(0,0,0,0.28)'; wirePath(); ctx.stroke();
+  ctx.lineWidth = 14; ctx.strokeStyle = '#92400e'; wirePath(); ctx.stroke();
+  ctx.lineWidth = 8;  ctx.strokeStyle = '#b45309'; wirePath(); ctx.stroke();
+  ctx.lineWidth = 4;  ctx.strokeStyle = '#f59e0b'; wirePath(); ctx.stroke();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,236,153,0.6)'; wirePath(); ctx.stroke();
   ctx.restore();
+
+  // START zone
+  const sp = pts[0];
+  ctx.save();
+  ctx.fillStyle = BuzzWire.active ? 'rgba(16,185,129,0.5)' : '#10b981';
+  ctx.strokeStyle = '#065f46'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(sp[0]*W, sp[1]*H, 22, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 8px Outfit'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('START', sp[0]*W, sp[1]*H);
+  ctx.restore();
+
+  // END zone
+  const ep = pts[pts.length - 1];
+  const endCleared = BuzzWire.complete && BuzzWire.cleared.includes(BuzzWire.shapeIdx);
+  ctx.save();
+  ctx.fillStyle = endCleared ? '#10b981' : '#d97706';
+  ctx.strokeStyle = '#92400e'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(ep[0]*W, ep[1]*H, 22, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 8px Outfit'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('END', ep[0]*W, ep[1]*H);
+  ctx.restore();
+
+  // Buzz flash red overlay
+  if (BuzzWire.flashTimer > 0) {
+    ctx.fillStyle = `rgba(239,68,68,${BuzzWire.flashTimer * 0.022})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Ring (silver metallic circle following cursor)
+  const rx = BuzzWire.ringX, ry = BuzzWire.ringY;
+  ctx.save();
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = BuzzWire.isBuzzing ? '#ef4444' : '#d1d5db';
+  ctx.shadowColor  = BuzzWire.isBuzzing ? '#ef4444' : 'rgba(150,150,150,0.5)';
+  ctx.shadowBlur   = BuzzWire.isBuzzing ? 18 : 5;
+  ctx.beginPath(); ctx.arc(rx, ry, BuzzWire.ringR, 0, 2*Math.PI); ctx.stroke();
+  // Inner shine arc
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = BuzzWire.isBuzzing ? 'rgba(254,202,202,0.55)' : 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(rx - BuzzWire.ringR*0.18, ry - BuzzWire.ringR*0.18, BuzzWire.ringR*0.45, 0.7, 1.9);
+  ctx.stroke();
+  ctx.restore();
+
+  // Shape label (top-left)
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.font = 'bold 11px Cinzel'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(shape.name.toUpperCase(), 10, 8);
+  // Live accuracy (top-right) once active
+  if (BuzzWire.active) {
+    const acc = Math.max(0, 100 - BuzzWire.buzzes * 10);
+    ctx.fillStyle = acc >= 70 ? '#34d399' : acc >= 50 ? '#fbbf24' : '#f87171';
+    ctx.font = 'bold 13px Outfit'; ctx.textAlign = 'right';
+    ctx.fillText(`${acc}%`, W - 10, 8);
+  }
+  ctx.restore();
+
+  // Completion banner
+  if (BuzzWire.complete) {
+    const acc = Math.max(0, 100 - BuzzWire.buzzes * 10);
+    const passed = acc >= 70;
+    ctx.save();
+    ctx.fillStyle = passed ? 'rgba(16,185,129,0.14)' : 'rgba(239,68,68,0.12)';
+    ctx.fillRect(0, 0, W, H);
+    const col = passed ? '#10b981' : '#ef4444';
+    ctx.shadowColor = col; ctx.shadowBlur = 16;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(W*0.18, H*0.06, W*0.64, H*0.20, 10);
+    else ctx.rect(W*0.18, H*0.06, W*0.64, H*0.20);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 20px Outfit'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText((passed ? '✓ CLEARED   ' : '✗ TRY AGAIN   ') + acc + '%', W/2, H*0.06 + H*0.10);
+    ctx.restore();
+  }
 }
 
 // ------------------------------------------

@@ -282,13 +282,13 @@
       </div>
     </div>
 
-    <!-- STATION 3: BAMBOO MAZE -->
+    <!-- STATION 3: BUZZ WIRE CHALLENGE -->
     <div id="screen-bamboo" class="screen-wrapper hidden">
       <div class="split-viewport">
         <section class="left-panel">
           <div class="section-title-row">
             <button onclick="backToCourtyard()" class="cartoon-btn secondary"><i data-lucide="chevron-left" class="w-4 h-4"></i> Back</button>
-            <h2 class="font-cinzel">Bamboo Probe Maze</h2>
+            <h2 class="font-cinzel">Buzz Wire Challenge</h2>
           </div>
           <div class="canvas-container">
             <canvas id="canvas-bamboo"></canvas>
@@ -297,45 +297,42 @@
         <aside class="right-panel">
           <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
-              <div class="goal-line">🎯 Goal: Discover which probe shape matches the channel's curve — experiment and watch the walls.</div>
-              <div class="live-feed-card" style="margin-bottom:10px; font-size:0.72rem; line-height:1.4;">
-                <strong>Objective.</strong> Guide the probe through the bamboo channel. Choose the probe shape that best
-                fits the path. Lotus tokens test precision — they reward control but aren't required to finish.
-              </div>
-              <h3 class="panel-section-title font-cinzel">MAZE VEHICLES</h3>
+              <div class="goal-line">🎯 Goal: Guide the ring from START to END without touching the wire. Clear 3 different shapes with ≥70% accuracy.</div>
 
+              <h3 class="panel-section-title font-cinzel">WIRE SHAPES</h3>
               <div class="variable-group">
-                <span class="lbl-small">Probe Style</span>
-                <div class="selection-pill-grid" style="grid-template-columns: 1fr; gap: 8px;">
-                  <button onclick="selectBambooProbe('straight')" id="btn-probe-straight" class="selection-pill active">Straight Probe (Fast, collides in bends)</button>
-                  <button onclick="selectBambooProbe('curved')" id="btn-probe-curved" class="selection-pill">Curved Probe (Maneuverable in curves)</button>
-                  <button onclick="selectBambooProbe('hooked')" id="btn-probe-hooked" class="selection-pill">Hooked Probe (Grabs far tokens)</button>
+                <span class="lbl-small">Select a shape to attempt</span>
+                <div class="selection-pill-grid" style="grid-template-columns: 1fr; gap: 6px;">
+                  <button onclick="selectWireShape(0)" id="btn-wire-0" class="selection-pill active">Arch</button>
+                  <button onclick="selectWireShape(1)" id="btn-wire-1" class="selection-pill">Valley</button>
+                  <button onclick="selectWireShape(2)" id="btn-wire-2" class="selection-pill">S-Curve</button>
+                  <button onclick="selectWireShape(3)" id="btn-wire-3" class="selection-pill">Double Hump</button>
+                  <button onclick="selectWireShape(4)" id="btn-wire-4" class="selection-pill">Zigzag</button>
                 </div>
               </div>
 
               <div class="live-feed-card" style="margin-top: 12px;">
-                <h5>Observations</h5>
+                <h5>Run Stats</h5>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-weight: 700;">
-                  <div>Sparks: <span id="bamboo-collisions" style="color: var(--color-rose);">0</span></div>
-                  <div>Lotuses: <span id="bamboo-tokens-val" style="color: #ca8a04;">0 / 3</span></div>
+                  <div>Buzzes: <span id="bamboo-collisions" style="color: var(--color-rose);">0</span></div>
+                  <div>Cleared: <span id="bamboo-tokens-val" style="color: #ca8a04;">0 / 3</span></div>
                 </div>
-                <div style="font-size: 0.65rem; margin-top: 4px;">Smoothness: <span id="bamboo-smoothness" style="color: var(--color-teal);">100%</span></div>
+                <div style="font-size: 0.65rem; margin-top: 4px;">Accuracy: <span id="bamboo-smoothness" style="color: var(--color-teal);">100%</span></div>
               </div>
 
-              <!-- Mentor Quote -->
               <div class="live-feed-card mentor-quote-box" style="margin-top: 12px;">
                 <h5>Sushruta Mentor</h5>
-                <p id="bamboo-mentor-tip">"Curved tools handle bends best."</p>
+                <p id="bamboo-mentor-tip">"Hover over START then guide the ring to END without touching the wire."</p>
               </div>
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 8px;">
               <p id="hint-nudge-bamboo" class="hint-nudge hidden"></p>
               <button onclick="toggleHint('bamboo')" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">💡 Hint</button>
-              <button onclick="resetBambooTunnel()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
-                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Maze
+              <button onclick="resetBuzzWire()" class="cartoon-btn secondary" style="width: 100%; justify-content: center;">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Shape
               </button>
-              <button onclick="completeStation('bamboo')" class="cartoon-btn primary" style="width: 100%; justify-content: center;">
+              <button id="btn-complete-bamboo" onclick="completeStation('bamboo')" class="cartoon-btn primary" disabled style="width: 100%; justify-content: center;">
                 Complete Challenge
               </button>
             </div>
