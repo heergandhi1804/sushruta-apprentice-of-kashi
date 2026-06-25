@@ -527,8 +527,10 @@ function initClothBoard() {
   }
 
   document.getElementById('cloth-stitch-count').textContent = 0;
+  const optHint = document.getElementById('cloth-optimum-hint');
+  if (optHint) optHint.textContent = `(opt: ${cfg.optimum})`;
   document.getElementById('cloth-mentor-tip').textContent =
-    `${cfg.name}: place stitches by clicking the anchor dots. Find the optimum — more is not always better.`;
+    `${cfg.name}: place stitches by clicking the anchor dots. Optimum is ${cfg.optimum} for this wound type.`;
 
   drawClothScene(ctx, canvas);
 
@@ -591,13 +593,25 @@ function analyzeRepair() {
   const countDelta = Math.abs(n - cfg.optimum);
 
   let msg;
-  if (cfg.shallow && n > 2) msg = "Observation Added: extra stitches pinched this shallow graze unnecessarily.";
-  else if (ClothBoard.woundType === 'clean' && n > cfg.optimum + 1) msg = "Observation Added: more stitches did not improve this clean cut.";
-  else if (ClothBoard.woundType === 'jagged' && n < cfg.optimum) msg = "Evidence Check: this jagged wound needs more support points.";
-  else if (!tOK && ClothBoard.tension > cfg.optTension[1]) msg = "Pattern Noticed: high tension pinched and puckered the edges.";
-  else if (!tOK) msg = "Pattern Noticed: low tension left gaps between the edges.";
-  else if (countDelta === 0 && evenness > 0.6) msg = "Principle Learned: optimum means enough support, evenly placed — not maximum force.";
-  else msg = "Pattern Noticed: balanced tension and even spacing close edges without pinching.";
+  if (n === 0) {
+    msg = `Evidence: No stitches placed. Try adding some before analyzing — optimum for ${cfg.name} is ${cfg.optimum} stitches.`;
+  } else if (cfg.shallow && n > 2) {
+    msg = `Evidence: ${n} stitches is too many for a shallow graze. Optimum is 1 — extra stitches only pinch healing tissue.`;
+  } else if (n > cfg.optimum + 2) {
+    msg = `Evidence: ${n} stitches placed, but optimum for ${cfg.name} is ${cfg.optimum}. More stitches beyond optimum creates tension and restricts circulation.`;
+  } else if (n > cfg.optimum) {
+    msg = `Pattern Noticed: ${n} stitches is ${n - cfg.optimum} more than the optimum of ${cfg.optimum} for this ${cfg.name}. Even spacing matters more than extra stitches.`;
+  } else if (n < cfg.optimum - 1) {
+    msg = `Evidence: Only ${n} ${n === 1 ? 'stitch' : 'stitches'} placed. This ${cfg.name} needs ${cfg.optimum} — too few leaves gaps and lets edges pull apart.`;
+  } else if (!tOK && ClothBoard.tension > cfg.optTension[1]) {
+    msg = `Pattern Noticed: Tension at ${ClothBoard.tension}% is too high (optimum: ${cfg.optTension[0]}–${cfg.optTension[1]}%). High tension puckers the skin and slows healing.`;
+  } else if (!tOK) {
+    msg = `Pattern Noticed: Tension at ${ClothBoard.tension}% is too low (optimum: ${cfg.optTension[0]}–${cfg.optTension[1]}%). Low tension leaves gaps between wound edges.`;
+  } else if (countDelta === 0 && evenness > 0.6) {
+    msg = `Principle Learned: ${n} evenly-spaced stitches at ${ClothBoard.tension}% tension — exactly optimum. Balanced support without pinching.`;
+  } else {
+    msg = `Pattern Noticed: ${n} stitches at ${ClothBoard.tension}% tension. Optimum is ${cfg.optimum} stitches in the ${cfg.optTension[0]}–${cfg.optTension[1]}% range.`;
+  }
 
   document.getElementById('cloth-mentor-tip').textContent = msg;
   ClothBoard.analyzed = true;

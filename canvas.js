@@ -529,13 +529,47 @@ function drawGourdScene(ctx, canvas) {
     }
     ctx.restore();
 
-    // Draw outcome bubble on canvas
-    if (GourdLab.outcome) {
-      ctx.fillStyle = GourdLab.outcome.includes("SMOOTH") || GourdLab.outcome.includes("PUNCTURED") ? '#10b981' : '#ef4444';
-      ctx.font = 'bold 14px Outfit';
-      ctx.textAlign = 'center';
-      ctx.fillText(GourdLab.outcome, last.x, last.y - 25);
+  }
+
+  // Big outcome banner
+  if (GourdLab.outcome) {
+    const W = canvas.width, H = canvas.height;
+    const isWin = GourdLab.outcome === 'SMOOTH!' || GourdLab.outcome === 'PUNCTURED!';
+    const col = isWin ? '#10b981' : '#ef4444';
+    ctx.save();
+    ctx.fillStyle = isWin ? 'rgba(16,185,129,0.14)' : 'rgba(239,68,68,0.11)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = col; ctx.shadowColor = col; ctx.shadowBlur = 18;
+    ctx.beginPath(); ctx.roundRect(W*0.18, H*0.06, W*0.64, H*0.17, 12); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 26px Outfit';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText((isWin ? '✓ ' : '✗ ') + GourdLab.outcome, W/2, H*0.06 + H*0.085);
+    if (GourdLab.outcome === 'TEAR!') {
+      const gcx = canvas.width/2, gcy = canvas.height * 0.5;
+      ctx.strokeStyle = '#7f1d1d'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      [[gcx+55,gcy-28,gcx+74,gcy+6],[gcx+74,gcy+6,gcx+50,gcy+38],[gcx+62,gcy-14,gcx+80,gcy+3]].forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();});
     }
+    if (GourdLab.outcome === 'STUCK!') {
+      const gcx = canvas.width/2, gcy = canvas.height * 0.5;
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2.5;
+      for (let a = 0; a < Math.PI*2; a += Math.PI/4) {
+        ctx.beginPath(); ctx.moveTo(gcx + Math.cos(a)*60, gcy + Math.sin(a)*40); ctx.lineTo(gcx + Math.cos(a)*72, gcy + Math.sin(a)*50); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  // All-matched celebration
+  if (GourdLab.matchedItems.length === 3) {
+    const W = canvas.width, H = canvas.height;
+    ctx.save();
+    ctx.fillStyle = 'rgba(5,150,105,0.20)'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#065f46'; ctx.font = 'bold 20px Cinzel'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('ALL 3 MATERIALS MATCHED!', W/2, H*0.03);
+    ctx.fillStyle = '#047857'; ctx.font = 'bold 13px Outfit';
+    ctx.fillText('Click "Complete Challenge" below to advance', W/2, H*0.12);
+    ctx.restore();
   }
 }
 
@@ -548,86 +582,144 @@ function drawClothScene(ctx, canvas) {
   const tension = ClothBoard.tension;
   ctx.clearRect(0, 0, W, H);
 
-  // parchment plate
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#f6ecd6'); bg.addColorStop(1, '#ead9b6');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = 'rgba(120,80,30,0.35)'; ctx.lineWidth = 3; ctx.strokeRect(10, 10, W - 20, H - 20);
-  ctx.fillStyle = 'rgba(120,80,30,0.6)'; ctx.font = 'bold 10px Cinzel'; ctx.textAlign = 'left';
-  ctx.fillText(`PLATE — ${cfg.name.toUpperCase()}`, 22, 30);
+  // Battlefield backdrop
+  drawBattlefield(ctx, canvas);
 
-  // skin band (sepia illustration tone)
-  const skinW = W * 0.5, x0 = midX - skinW / 2;
-  const sg = ctx.createLinearGradient(x0, 0, x0 + skinW, 0);
-  sg.addColorStop(0, '#e8c39e'); sg.addColorStop(0.5, '#f0d2b0'); sg.addColorStop(1, '#e0b489');
-  ctx.fillStyle = sg; ctx.fillRect(x0, H * 0.12, skinW, H * 0.76);
-  ctx.strokeStyle = '#9a6b3f'; ctx.lineWidth = 2; ctx.strokeRect(x0, H * 0.12, skinW, H * 0.76);
+  // Forearm — cylinder gradient (lighter centre, darker edges = 3-D roundness)
+  const aL = W * 0.10, aR = W * 0.90, aT = H * 0.04, aB = H * 0.88;
+  const skinGrad = ctx.createLinearGradient(aL, 0, aR, 0);
+  skinGrad.addColorStop(0.00, '#a04818');
+  skinGrad.addColorStop(0.12, '#d88040');
+  skinGrad.addColorStop(0.38, '#f5c090');
+  skinGrad.addColorStop(0.55, '#f8d8b0');
+  skinGrad.addColorStop(0.80, '#d88040');
+  skinGrad.addColorStop(1.00, '#9a4010');
+  ctx.fillStyle = skinGrad;
+  ctx.strokeStyle = '#7c3010'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.roundRect(aL, aT, aR - aL, aB - aT, 30); ctx.fill(); ctx.stroke();
 
-  // tension-driven lip geometry
-  const part = tension < 30 ? 9 : tension > 75 ? -4 : 2;
-  const drawLip = (sign) => {
-    ctx.beginPath();
-    ClothBoard.anchors.forEach((a, i) => {
-      const ex = sign < 0 ? a.lx - part : a.rx + part;
-      i ? ctx.lineTo(ex, a.y) : ctx.moveTo(ex, a.y);
-    });
-    ctx.lineWidth = 3; ctx.strokeStyle = '#8a4b2a'; ctx.stroke();
-  };
+  // Gloss highlight
+  const gloss = ctx.createLinearGradient(aL + (aR-aL)*0.28, 0, aL + (aR-aL)*0.58, 0);
+  gloss.addColorStop(0, 'rgba(255,255,255,0)');
+  gloss.addColorStop(0.4, 'rgba(255,255,255,0.22)');
+  gloss.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = gloss;
+  ctx.beginPath(); ctx.roundRect(aL, aT, aR - aL, (aB - aT) * 0.28, [30, 30, 0, 0]); ctx.fill();
+
+  // Anatomy creases
+  ctx.strokeStyle = 'rgba(100,45,10,0.14)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(aL+35, H*0.33); ctx.lineTo(aR-35, H*0.31); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(aL+45, H*0.67); ctx.lineTo(aR-45, H*0.69); ctx.stroke();
+
+  // Plate label
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = 'bold 9px Cinzel'; ctx.textAlign = 'left';
+  ctx.fillText('SOLDIER FOREARM — ' + cfg.name.toUpperCase(), aL + 10, aT + 16);
+
+  // Wound gap (tension-driven)
+  const gap = tension < 30 ? 11 : tension > 75 ? -3 : 3;
 
   if (cfg.shallow) {
-    // scraped: stippled abrasion patch, no deep lips
-    ctx.fillStyle = 'rgba(190,90,60,0.18)';
-    ctx.fillRect(midX - 22, H * 0.2, 44, H * 0.6);
-    ctx.fillStyle = 'rgba(150,60,40,0.5)';
-    for (let i = 0; i < 90; i++) ctx.fillRect(midX - 20 + Math.random() * 40, H * 0.2 + Math.random() * H * 0.6, 1.6, 1.6);
+    if (ClothBoard.anchors.length > 0) {
+      const ay0 = ClothBoard.anchors[0].y - 8;
+      const ayN = ClothBoard.anchors[ClothBoard.anchors.length - 1].y + 8;
+      ctx.fillStyle = 'rgba(200,80,50,0.26)';
+      ctx.fillRect(midX - 28, ay0, 56, ayN - ay0);
+      ctx.fillStyle = 'rgba(155,45,25,0.55)';
+      for (let i = 0; i < 110; i++)
+        ctx.fillRect(midX - 26 + Math.random() * 52, ay0 + Math.random() * (ayN - ay0), 1.6, 1.6);
+    }
   } else {
-    // wound channel between lips
-    ctx.fillStyle = '#7a3b22';
+    // Deep wound channel
+    ctx.fillStyle = '#5a1008';
     ctx.beginPath();
-    ClothBoard.anchors.forEach((a, i) => { const x = a.lx - part; i ? ctx.lineTo(x, a.y) : ctx.moveTo(x, a.y); });
-    for (let i = ClothBoard.anchors.length - 1; i >= 0; i--) { const a = ClothBoard.anchors[i]; ctx.lineTo(a.rx + part, a.y); }
+    ClothBoard.anchors.forEach((a, i) => { i ? ctx.lineTo(a.lx - gap, a.y) : ctx.moveTo(a.lx - gap, a.y); });
+    for (let i = ClothBoard.anchors.length - 1; i >= 0; i--) ctx.lineTo(ClothBoard.anchors[i].rx + gap, ClothBoard.anchors[i].y);
     ctx.closePath(); ctx.fill();
+
+    // Wound lips
+    const drawLip = (sign) => {
+      ctx.beginPath();
+      ClothBoard.anchors.forEach((a, i) => {
+        const ex = sign < 0 ? a.lx - gap : a.rx + gap;
+        i ? ctx.lineTo(ex, a.y) : ctx.moveTo(ex, a.y);
+      });
+      ctx.lineWidth = 2.5; ctx.strokeStyle = '#8a3020'; ctx.stroke();
+    };
     drawLip(-1); drawLip(1);
-    // minimal blood dots
-    ctx.fillStyle = 'rgba(150,30,30,0.55)';
-    ClothBoard.anchors.filter((_, i) => i % 3 === 0).forEach(a => { ctx.beginPath(); ctx.arc(midX, a.y, 1.8, 0, 2 * Math.PI); ctx.fill(); });
+
+    // Blood beads at wound centre
+    ctx.fillStyle = 'rgba(140,20,20,0.70)';
+    ClothBoard.anchors.filter((_, i) => i % 2 === 0).forEach(a => { ctx.beginPath(); ctx.arc(midX, a.y, 2.2, 0, 2*Math.PI); ctx.fill(); });
   }
 
-  // pucker wrinkles when too tight (only with stitches)
+  // Pucker wrinkles at high tension
   if (tension > 75 && ClothBoard.placed.length) {
-    ctx.strokeStyle = 'rgba(200,60,60,0.4)'; ctx.lineWidth = 1.5;
-    ClothBoard.placed.forEach(i => { const a = ClothBoard.anchors[i]; for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(a.lx + s * 0, a.y - 7); ctx.lineTo(midX + s * 22, a.y); ctx.lineTo(a.lx, a.y + 7); ctx.stroke(); } });
+    ctx.strokeStyle = 'rgba(200,60,60,0.45)'; ctx.lineWidth = 1.5;
+    ClothBoard.placed.forEach(i => {
+      const a = ClothBoard.anchors[i];
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(a.lx + s*2, a.y-8); ctx.lineTo(midX + s*26, a.y); ctx.lineTo(a.lx + s*2, a.y+8); ctx.stroke(); }
+    });
   }
 
-  // anchor dots (open = available, filled = stitched)
+  // Anchor dots
   ClothBoard.anchors.forEach((a, i) => {
     const on = ClothBoard.placed.includes(i);
     [a.lx, a.rx].forEach(x => {
-      ctx.beginPath(); ctx.arc(x, a.y, 4, 0, 2 * Math.PI);
-      ctx.fillStyle = on ? '#1f2937' : '#fff'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#1f2937'; ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, a.y, 5, 0, 2*Math.PI);
+      ctx.fillStyle = on ? '#1f2937' : 'rgba(255,248,220,0.95)';
+      ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#1f2937'; ctx.stroke();
     });
   });
 
-  // placed sutures, colored by tension band
+  // Sutures with knot dots
   ClothBoard.placed.forEach(i => {
     const a = ClothBoard.anchors[i];
-    ctx.lineWidth = 4; ctx.lineCap = 'round';
-    ctx.strokeStyle = tension > 75 ? '#ef4444' : tension < 30 ? '#eab308' : '#10b981';
-    ctx.beginPath(); ctx.moveTo(a.lx, a.y); ctx.quadraticCurveTo(midX, a.y - 9, a.rx, a.y); ctx.stroke();
+    const col = tension > 75 ? '#ef4444' : tension < 30 ? '#eab308' : '#10b981';
+    ctx.lineWidth = 3.5; ctx.lineCap = 'round'; ctx.strokeStyle = col;
+    ctx.beginPath(); ctx.moveTo(a.lx, a.y); ctx.quadraticCurveTo(midX, a.y - 10, a.rx, a.y); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(a.lx, a.y, 3.5, 0, 2*Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.arc(a.rx, a.y, 3.5, 0, 2*Math.PI); ctx.fill();
   });
 
-  // OPTIMUM GUIDE — only after analysis (discovery, never before)
-  if (ClothBoard.analyzed) {
-    ctx.fillStyle = 'rgba(13,148,136,0.10)'; ctx.fillRect(x0, H * 0.12, skinW, H * 0.76);
-    const optRows = idealRows(cfg.rows, cfg.optimum);
-    optRows.forEach(i => { const a = ClothBoard.anchors[i]; ctx.strokeStyle = 'rgba(13,148,136,0.9)'; ctx.setLineDash([5, 4]); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(a.lx, a.y); ctx.lineTo(a.rx, a.y); ctx.stroke(); ctx.setLineDash([]); });
-    ctx.fillStyle = '#0f766e'; ctx.font = 'bold 11px Outfit'; ctx.textAlign = 'center';
-    ctx.fillText(`Optimum: ${cfg.optimum} even stitches · balanced tension`, midX, H * 0.95);
+  // Stitch count live badge
+  if (ClothBoard.placed.length > 0 && !ClothBoard.analyzed) {
+    const n = ClothBoard.placed.length;
+    const col = n > cfg.optimum + 1 ? '#ef4444' : n < cfg.optimum ? '#eab308' : '#10b981';
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.roundRect(aR - 172, aB + 4, 170, 22, 6); ctx.fill();
+    ctx.fillStyle = col; ctx.font = 'bold 11px Outfit'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    const badge = n > cfg.optimum + 1 ? `${n} stitches — too many (opt: ${cfg.optimum})` : n < cfg.optimum ? `${n} stitches — too few (opt: ${cfg.optimum})` : `${n} stitches — on target!`;
+    ctx.fillText(badge, aR - 6, aB + 8);
+    ctx.restore();
   }
 
-  // hint overlay (ghost ideal stitches) when hint on, before analysis
+  // Optimum Guide — only after analysis
+  if (ClothBoard.analyzed) {
+    const optRows = idealRows(cfg.rows, cfg.optimum);
+    optRows.forEach(i => {
+      const a = ClothBoard.anchors[i];
+      ctx.strokeStyle = 'rgba(13,148,136,0.88)'; ctx.setLineDash([5, 4]); ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(a.lx - 10, a.y); ctx.lineTo(a.rx + 10, a.y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(13,148,136,0.8)';
+      ctx.beginPath(); ctx.arc(a.lx - 14, a.y, 3, 0, 2*Math.PI); ctx.fill();
+      ctx.beginPath(); ctx.arc(a.rx + 14, a.y, 3, 0, 2*Math.PI); ctx.fill();
+    });
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.roundRect(aL, aB + 4, aR - aL, 22, 6); ctx.fill();
+    ctx.fillStyle = '#2dd4bf'; ctx.font = 'bold 11px Outfit'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(`Optimum: ${cfg.optimum} evenly-spaced stitches · tension ${cfg.optTension[0]}–${cfg.optTension[1]}%`, midX, aB + 8);
+    ctx.restore();
+  }
+
+  // Hint overlay (ghost stitches at ideal rows)
   if (typeof GameState !== 'undefined' && (GameState.hints?.['cloth'] || 0) >= 1 && !ClothBoard.analyzed) {
-    idealRows(cfg.rows, cfg.optimum).forEach(i => { const a = ClothBoard.anchors[i]; ctx.strokeStyle = 'rgba(13,148,136,0.35)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(a.lx, a.y); ctx.lineTo(a.rx, a.y); ctx.stroke(); ctx.setLineDash([]); });
+    idealRows(cfg.rows, cfg.optimum).forEach(i => {
+      const a = ClothBoard.anchors[i];
+      ctx.strokeStyle = 'rgba(13,148,136,0.32)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(a.lx, a.y); ctx.lineTo(a.rx, a.y); ctx.stroke(); ctx.setLineDash([]);
+    });
   }
 }
 
@@ -759,10 +851,11 @@ function drawBambooScene(ctx, canvas) {
 // YARD 4: WRAP RACE
 // ------------------------------------------
 function drawDollScene(ctx, canvas) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
 
-  ctx.fillStyle = '#faf9f5';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Battlefield backdrop
+  drawBattlefield(ctx, canvas);
 
   let cx = DollWrap.centerX;
   let cy = DollWrap.centerY;
@@ -784,56 +877,70 @@ function drawDollScene(ctx, canvas) {
   // Slippage offset
   let slipOffset = 0;
   if (DollWrap.testAction && DollWrap.tightness < 3) {
-    slipOffset = (25 - DollWrap.testTimer) * 1.6; // slips off boundary
+    slipOffset = (25 - DollWrap.testTimer) * 1.6;
   }
 
-  // Draw peach linen limb cross section
-  ctx.fillStyle = '#fed7aa';
-  ctx.strokeStyle = '#7c2d12';
-  ctx.lineWidth = 3.5;
-  ctx.beginPath();
-  ctx.arc(cx, cy, rad, 0, 2 * Math.PI);
-  ctx.fill(); ctx.stroke();
+  // Knee / joint cross-section — skin cylinder
+  const ks = ctx.createRadialGradient(cx - rad * 0.3, cy - rad * 0.3, rad * 0.1, cx, cy, rad * 1.1);
+  ks.addColorStop(0, '#f8d8b0');
+  ks.addColorStop(0.55, '#d88040');
+  ks.addColorStop(1, '#8a3a10');
+  ctx.fillStyle = ks; ctx.strokeStyle = '#7c3010'; ctx.lineWidth = 3.5;
+  ctx.beginPath(); ctx.arc(cx, cy, rad, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
 
-  // Draw joint seam lines
-  ctx.strokeStyle = 'rgba(124, 45, 18, 0.2)';
-  ctx.lineWidth = 1.5;
+  // Knee cap highlight
+  const hl = ctx.createRadialGradient(cx - rad * 0.22, cy - rad * 0.2, 2, cx - rad * 0.22, cy - rad * 0.2, rad * 0.55);
+  hl.addColorStop(0, 'rgba(255,255,255,0.35)'); hl.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hl; ctx.beginPath(); ctx.arc(cx, cy, rad, 0, 2 * Math.PI); ctx.fill();
+
+  // Joint crease lines
+  ctx.strokeStyle = 'rgba(100,40,10,0.18)'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(cx - rad, cy); ctx.lineTo(cx + rad, cy); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(cx, cy - rad); ctx.lineTo(cx, cy + rad); ctx.stroke();
 
-  // Draw wrap rings
-  ctx.strokeStyle = 'rgba(217, 70, 239, 0.8)';
+  // Label
+  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = 'bold 9px Cinzel'; ctx.textAlign = 'center';
+  ctx.fillText('SOLDIER KNEE JOINT', cx, cy + rad + 16);
+
+  // Wound marker on kneecap (injury that needs bandaging)
+  ctx.fillStyle = 'rgba(160,30,20,0.75)';
+  ctx.beginPath(); ctx.ellipse(cx + rad * 0.25, cy - rad * 0.15, 7, 4, 0.4, 0, 2 * Math.PI); ctx.fill();
+
+  // Bandage rings (linen color, slightly translucent)
   ctx.lineCap = 'round';
   for (let i = 1; i <= DollWrap.layers; i++) {
-    ctx.lineWidth = 4.5;
+    const alpha = Math.max(0.35, 1 - i * 0.07);
+    ctx.lineWidth = 7;
+    ctx.strokeStyle = `rgba(240,220,170,${alpha})`;
     ctx.beginPath();
-    // if slipping, slide the concentric rings outward
-    ctx.arc(cx + slipOffset, cy + slipOffset / 2, rad + i * 4.5, 0, 2 * Math.PI);
+    ctx.arc(cx + slipOffset, cy + slipOffset * 0.5, rad + i * 5.5, 0, 2 * Math.PI);
+    ctx.stroke();
+    // linen texture stripe
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = `rgba(200,175,120,${alpha * 0.5})`;
+    ctx.beginPath();
+    ctx.arc(cx + slipOffset, cy + slipOffset * 0.5, rad + i * 5.5, -0.5, Math.PI + 0.5);
     ctx.stroke();
   }
 
-  // Squeeze vectors for tight wraps
+  // Squeeze arrows when too tight
   if (DollWrap.tightness > 7 && DollWrap.layers > 0) {
-    ctx.strokeStyle = '#ef4444';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2;
     for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
-      const sx = cx + (rad + 15) * Math.cos(angle);
-      const sy = cy + (rad + 15) * Math.sin(angle);
-      const tx = cx + (rad + 3) * Math.cos(angle);
-      const ty = cy + (rad + 3) * Math.sin(angle);
+      const sx = cx + (rad + DollWrap.layers * 5.5 + 14) * Math.cos(angle);
+      const sy = cy + (rad + DollWrap.layers * 5.5 + 14) * Math.sin(angle);
+      const tx = cx + (rad + DollWrap.layers * 5.5 + 3) * Math.cos(angle);
+      const ty = cy + (rad + DollWrap.layers * 5.5 + 3) * Math.sin(angle);
       drawArrow(ctx, sx, sy, tx, ty);
     }
   }
 
-  // Draw drag trail gauze
+  // Drag trail (gauze path)
   if (DollWrap.history.length > 1) {
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = 'rgba(217, 70, 239, 0.4)';
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(240,220,170,0.45)';
     ctx.beginPath();
     ctx.moveTo(DollWrap.history[0].x, DollWrap.history[0].y);
-    for (let i = 1; i < DollWrap.history.length; i++) {
-      ctx.lineTo(DollWrap.history[i].x, DollWrap.history[i].y);
-    }
+    for (let i = 1; i < DollWrap.history.length; i++) ctx.lineTo(DollWrap.history[i].x, DollWrap.history[i].y);
     ctx.stroke();
   }
 }
