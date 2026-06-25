@@ -680,6 +680,14 @@ function clearStitches() {
 // YARD 3: BUZZ WIRE CHALLENGE
 // ------------------------------------------
 
+function _sampleLine(p0, p1, n) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    pts.push([p0[0]*(1-t)+p1[0]*t, p0[1]*(1-t)+p1[1]*t]);
+  }
+  return pts;
+}
 function _sampleQuad(p0, p1, p2, n) {
   const pts = [];
   for (let i = 0; i <= n; i++) {
@@ -701,19 +709,66 @@ function _sampleCubic(p0, p1, p2, p3, n) {
 }
 
 const WIRE_SHAPES = [
-  { name: 'High Arch',     pts: _sampleQuad([0.07,0.80],[0.50,0.05],[0.93,0.80], 90) },
-  { name: 'Deep Valley',   pts: _sampleQuad([0.07,0.20],[0.50,0.95],[0.93,0.20], 90) },
-  { name: 'Tight S',       pts: _sampleCubic([0.07,0.12],[0.24,0.04],[0.76,0.96],[0.93,0.88], 90) },
-  { name: 'Triple Hump',   pts: [
-    ..._sampleQuad([0.07,0.80],[0.22,0.05],[0.36,0.78], 40),
-    ..._sampleQuad([0.36,0.78],[0.50,0.05],[0.64,0.78], 40),
-    ..._sampleQuad([0.64,0.78],[0.78,0.05],[0.93,0.80], 40)
+  // 1: Rectangular arch — sharp 90° top corners, nearly full height
+  { name: 'Wall Loop', pts: [
+    ..._sampleLine([0.07,0.84],[0.24,0.84], 6),
+    ..._sampleLine([0.24,0.84],[0.24,0.13], 24),
+    ..._sampleQuad([0.24,0.13],[0.24,0.05],[0.33,0.05], 16),
+    ..._sampleLine([0.33,0.05],[0.67,0.05], 10),
+    ..._sampleQuad([0.67,0.05],[0.76,0.05],[0.76,0.13], 16),
+    ..._sampleLine([0.76,0.13],[0.76,0.84], 24),
+    ..._sampleLine([0.76,0.84],[0.93,0.84], 6),
   ]},
-  { name: 'Corkscrew',     pts: [
-    ..._sampleCubic([0.07,0.50],[0.14,0.04],[0.28,0.04],[0.37,0.50], 38),
-    ..._sampleCubic([0.37,0.50],[0.46,0.96],[0.60,0.96],[0.69,0.50], 38),
-    ..._sampleCubic([0.69,0.50],[0.78,0.04],[0.88,0.04],[0.93,0.50], 30)
-  ]}
+  // 2: Two downward pits with sharp 90° corners
+  { name: 'Double Pit', pts: [
+    ..._sampleLine([0.07,0.16],[0.19,0.16], 5),
+    ..._sampleLine([0.19,0.16],[0.19,0.86], 22),
+    ..._sampleQuad([0.19,0.86],[0.19,0.94],[0.27,0.94], 13),
+    ..._sampleLine([0.27,0.94],[0.39,0.94], 5),
+    ..._sampleQuad([0.39,0.94],[0.47,0.94],[0.47,0.86], 13),
+    ..._sampleLine([0.47,0.86],[0.47,0.16], 22),
+    ..._sampleLine([0.47,0.16],[0.53,0.16], 4),
+    ..._sampleLine([0.53,0.16],[0.53,0.86], 22),
+    ..._sampleQuad([0.53,0.86],[0.53,0.94],[0.61,0.94], 13),
+    ..._sampleLine([0.61,0.94],[0.73,0.94], 5),
+    ..._sampleQuad([0.73,0.94],[0.81,0.94],[0.81,0.86], 13),
+    ..._sampleLine([0.81,0.86],[0.81,0.16], 22),
+    ..._sampleLine([0.81,0.16],[0.93,0.16], 5),
+  ]},
+  // 3: Three full reversals with near-edge tight corners
+  { name: 'Sharp Zigzag', pts: [
+    ..._sampleLine([0.07,0.50],[0.16,0.50], 4),
+    ..._sampleLine([0.16,0.50],[0.16,0.07], 18),
+    ..._sampleQuad([0.16,0.07],[0.16,0.03],[0.22,0.03], 12),
+    ..._sampleLine([0.22,0.03],[0.36,0.03], 6),
+    ..._sampleQuad([0.36,0.03],[0.42,0.03],[0.42,0.07], 12),
+    ..._sampleLine([0.42,0.07],[0.42,0.93], 24),
+    ..._sampleQuad([0.42,0.93],[0.42,0.97],[0.48,0.97], 12),
+    ..._sampleLine([0.48,0.97],[0.58,0.97], 6),
+    ..._sampleQuad([0.58,0.97],[0.64,0.97],[0.64,0.93], 12),
+    ..._sampleLine([0.64,0.93],[0.64,0.07], 24),
+    ..._sampleQuad([0.64,0.07],[0.64,0.03],[0.70,0.03], 12),
+    ..._sampleLine([0.70,0.03],[0.84,0.03], 6),
+    ..._sampleQuad([0.84,0.03],[0.90,0.03],[0.90,0.07], 12),
+    ..._sampleLine([0.90,0.07],[0.90,0.50], 18),
+    ..._sampleLine([0.90,0.50],[0.93,0.50], 3),
+  ]},
+  // 4: Three alternating smooth arches (up, down, up) — tight entry/exit
+  { name: 'Triple Loop', pts: [
+    ..._sampleLine([0.07,0.50],[0.14,0.50], 3),
+    ..._sampleCubic([0.14,0.50],[0.14,0.04],[0.35,0.04],[0.35,0.50], 42),
+    ..._sampleLine([0.35,0.50],[0.40,0.50], 3),
+    ..._sampleCubic([0.40,0.50],[0.40,0.96],[0.60,0.96],[0.60,0.50], 42),
+    ..._sampleLine([0.60,0.50],[0.65,0.50], 3),
+    ..._sampleCubic([0.65,0.50],[0.65,0.04],[0.86,0.04],[0.86,0.50], 42),
+    ..._sampleLine([0.86,0.50],[0.93,0.50], 3),
+  ]},
+  // 5: Three tight S-bends reaching within 3% of canvas edges
+  { name: 'Corkscrew', pts: [
+    ..._sampleCubic([0.07,0.50],[0.11,0.03],[0.25,0.03],[0.34,0.50], 42),
+    ..._sampleCubic([0.34,0.50],[0.43,0.97],[0.57,0.97],[0.66,0.50], 42),
+    ..._sampleCubic([0.66,0.50],[0.75,0.03],[0.89,0.03],[0.93,0.50], 42),
+  ]},
 ];
 
 const BuzzWire = {
