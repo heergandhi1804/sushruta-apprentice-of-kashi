@@ -938,100 +938,466 @@ function drawBuzzWireScene(ctx, canvas) {
 }
 
 // ------------------------------------------
+// YARD 4: WRAP RACE — helpers
+// ------------------------------------------
+function _dollCloud(ctx, cx, cy, rw, rh, alpha) {
+  ctx.save();
+  ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+  ctx.beginPath();
+  ctx.ellipse(cx,        cy,        rw,      rh,      0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx-rw*0.4, cy+rh*0.3, rw*0.55, rh*0.7,  0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx+rw*0.4, cy+rh*0.2, rw*0.60, rh*0.65, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function _dollSpeech(ctx, x, y, text, color, sc) {
+  ctx.save();
+  ctx.font = `bold ${Math.round(13*sc)}px Outfit`;
+  const tw = ctx.measureText(text).width;
+  const pad = sc*12, bw = tw + pad*2, bh = sc*32;
+  ctx.shadowColor = color; ctx.shadowBlur = 10;
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = color; ctx.lineWidth = sc*2.5;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x - bw/2, y - bh, bw, bh, sc*8);
+  else ctx.rect(x - bw/2, y - bh, bw, bh);
+  ctx.fill(); ctx.stroke();
+  // Tail
+  ctx.beginPath(); ctx.moveTo(x-sc*6,y); ctx.lineTo(x+sc*8,y); ctx.lineTo(x,y+sc*14); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y - bh/2);
+  ctx.restore();
+}
+
+// Draw one leg from hip (0,0) downward; coords pre-translated & rotated at call site
+function _dollLeg(ctx, sc, isLeft, skinC, unifD, bootC, hasBandage, layers, slip, wounded) {
+  const LW = sc*14, legH = sc*80;
+  const lowerStart = legH*0.44;
+  // Thigh (uniform)
+  ctx.fillStyle = '#5a6a32'; ctx.strokeStyle = unifD; ctx.lineWidth = sc;
+  ctx.beginPath(); ctx.roundRect(-LW/2, 0, LW, lowerStart, sc*4); ctx.fill(); ctx.stroke();
+  // Lower leg (skin or bandaged)
+  const bd = hasBandage && layers > 0;
+  ctx.fillStyle = skinC; ctx.strokeStyle = '#c8a060'; ctx.lineWidth = sc;
+  ctx.beginPath(); ctx.roundRect(-LW/2, lowerStart, LW, legH*0.46, sc*3); ctx.fill(); ctx.stroke();
+  if (wounded && !bd) {
+    ctx.fillStyle = 'rgba(200,38,26,0.75)';
+    ctx.beginPath(); ctx.ellipse(sc*2, lowerStart+legH*0.14, sc*5.5, sc*3.5, 0.3, 0, Math.PI*2); ctx.fill();
+  }
+  if (bd) {
+    const slipPx = slip * legH * 0.65;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < Math.min(layers, 5); i++) {
+      const bY = lowerStart + sc*5 + i*sc*7 + slipPx;
+      ctx.lineWidth = sc*7; ctx.strokeStyle = `rgba(240,226,181,${Math.max(0.32, 1-i*0.09)})`;
+      ctx.beginPath(); ctx.rect(-LW/2-sc*2, bY, LW+sc*4, sc*5.5); ctx.stroke();
+    }
+    if (slip > 0.78) {
+      ctx.fillStyle = 'rgba(200,38,26,0.75)';
+      ctx.beginPath(); ctx.ellipse(sc*2, lowerStart+legH*0.14, sc*5.5, sc*3.5, 0.3, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  // Boot
+  const bootY = legH*0.90;
+  const dir = isLeft ? -1 : 1;
+  ctx.fillStyle = bootC; ctx.strokeStyle = '#1a0e02'; ctx.lineWidth = sc;
+  ctx.beginPath(); ctx.roundRect(-LW/2-sc*2, bootY, LW+sc*4, sc*18, sc*4); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(-LW/2+dir*sc*3, bootY+sc*9, LW*0.8, sc*9, sc*3); ctx.fill(); ctx.stroke();
+}
+
+// Draw one arm from shoulder (0,0); caller must translate to shoulder pos
+function _dollArm(ctx, sc, isLeft, skinC, skinD, unifC, unifD,
+                   hasBandage, bodyPart, layers, slip, state) {
+  const AW = sc*13, uH = sc*40, fH = sc*36;
+  const baseAngle = isLeft ? 0.18 : -0.18;
+  ctx.save();
+  ctx.rotate(baseAngle);
+  // Upper arm (uniform sleeve)
+  ctx.fillStyle = unifC; ctx.strokeStyle = unifD; ctx.lineWidth = sc;
+  ctx.beginPath(); ctx.roundRect(-AW/2, 0, AW, uH, sc*4); ctx.fill(); ctx.stroke();
+  // Forearm + hand
+  ctx.save();
+  ctx.translate(0, uH);
+  const elbowBend = isLeft ? 0.25 : -0.25;
+  ctx.rotate(elbowBend);
+  const bd = hasBandage && bodyPart === 'arm' && layers > 0;
+  ctx.fillStyle = skinC; ctx.strokeStyle = skinD; ctx.lineWidth = sc;
+  ctx.beginPath(); ctx.roundRect(-AW/2, 0, AW, fH, sc*3); ctx.fill(); ctx.stroke();
+  if (bd) {
+    const slipPx = slip * fH * 0.6;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < Math.min(layers, 4); i++) {
+      const bY = sc*4 + i*sc*8 + slipPx;
+      ctx.lineWidth = sc*6.5; ctx.strokeStyle = `rgba(240,226,181,${Math.max(0.34, 1-i*0.1)})`;
+      ctx.beginPath(); ctx.rect(-AW/2-sc*2, bY, AW+sc*4, sc*5); ctx.stroke();
+    }
+    if (slip > 0.82) {
+      ctx.fillStyle = 'rgba(200,38,26,0.7)';
+      ctx.beginPath(); ctx.ellipse(0, fH*0.28, sc*4.5, sc*3, 0, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  // Hand (oval)
+  ctx.fillStyle = skinC; ctx.strokeStyle = skinD; ctx.lineWidth = sc;
+  ctx.beginPath(); ctx.ellipse(0, fH+sc*7, AW*0.55, AW*0.65, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  // Finger bandage
+  if (hasBandage && bodyPart === 'finger' && layers > 0) {
+    const slipPx = slip * sc*20;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < Math.min(layers, 3); i++) {
+      const bY = fH + sc*(2 + i*4) + slipPx;
+      ctx.lineWidth = sc*4; ctx.strokeStyle = `rgba(240,226,181,${Math.max(0.4, 1-i*0.12)})`;
+      ctx.beginPath(); ctx.ellipse(AW*0.35, bY, sc*5, sc*4, 0, 0, Math.PI*2); ctx.stroke();
+    }
+  }
+  ctx.restore(); // elbow
+  ctx.restore(); // shoulder
+}
+
+function _drawSoldierMain(ctx, bx, by, sc, state, ph, bodyPart, layers, slip) {
+  const SKIN  = '#f5c285', SKIN_D = '#d9a060';
+  const UNIF  = '#6b7c40', UNIF_D = '#4a5a2e';
+  const HELM  = '#3e5020';
+  const BOOT  = '#2b1a0a';
+
+  const walk   = ph * (state === 'perfect' ? 0.22 : state === 'tight' ? 0.10 : 0);
+  const lLeg   = Math.sin(walk) * 0.38;
+  const rLeg   = Math.sin(walk + Math.PI) * 0.38;
+  const lArm   = -lLeg * 0.55;
+  const rArm   = -rLeg * 0.55;
+  const bounce = state === 'perfect' ? Math.abs(Math.sin(walk)) * sc*4 : 0;
+
+  // Idle injury limp (right leg slight raise)
+  const limp = (state === 'idle' || state === 'loose') && bodyPart === 'leg'
+    ? Math.sin(ph * 0.05) * sc * 3 : 0;
+
+  const footY = by;
+  const hipY  = by - sc*88 - bounce;
+  const shY   = by - sc*150 - bounce;
+  const neckY = by - sc*162 - bounce;
+  const headCY= by - sc*192 - bounce;
+  const headR = sc*30;
+  const bw    = sc*36;   // body half-width at shoulders
+  const bwH   = sc*28;   // body half-width at hips
+
+  // Wounded-leg tracking: right leg gets injury marker when not bandaged
+  const legWounded = bodyPart === 'leg';
+
+  // ---- BACK ARM ----
+  const rArmBack = rArm < 0;
+  if (rArmBack) {
+    ctx.save(); ctx.translate(bx+bw, shY); ctx.rotate(rArm*0.5);
+    _dollArm(ctx, sc, false, SKIN, SKIN_D, UNIF, UNIF_D,
+             bodyPart==='arm'||bodyPart==='finger', bodyPart, layers, slip, state);
+    ctx.restore();
+  } else {
+    ctx.save(); ctx.translate(bx-bw, shY); ctx.rotate(lArm*0.5);
+    _dollArm(ctx, sc, true, SKIN, SKIN_D, UNIF, UNIF_D, false, bodyPart, 0, 0, state);
+    ctx.restore();
+  }
+
+  // ---- BACK LEG ----
+  if (rLeg < 0) {
+    ctx.save(); ctx.translate(bx+sc*16, hipY); ctx.rotate(rLeg);
+    _dollLeg(ctx, sc, false, SKIN, UNIF_D, BOOT, legWounded, layers, slip,
+             legWounded && layers===0);
+    ctx.restore();
+  } else {
+    ctx.save(); ctx.translate(bx-sc*16, hipY); ctx.rotate(lLeg);
+    _dollLeg(ctx, sc, true, SKIN, UNIF_D, BOOT, false, 0, 0, false);
+    ctx.restore();
+  }
+
+  // ---- TORSO ----
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(bx-bw, shY); ctx.lineTo(bx+bw, shY);
+  ctx.lineTo(bx+bwH, hipY); ctx.lineTo(bx-bwH, hipY); ctx.closePath();
+  const tg = ctx.createLinearGradient(bx-bw, shY, bx+bw, shY);
+  tg.addColorStop(0, UNIF_D); tg.addColorStop(0.35, UNIF);
+  tg.addColorStop(0.65, UNIF); tg.addColorStop(1, UNIF_D);
+  ctx.fillStyle = tg; ctx.fill(); ctx.strokeStyle = UNIF_D; ctx.lineWidth = sc*2; ctx.stroke();
+  // Pocket
+  ctx.fillStyle = UNIF_D; ctx.fillRect(bx-bw*0.55, shY+sc*10, sc*16, sc*12);
+  ctx.fillStyle = UNIF;   ctx.fillRect(bx-bw*0.55+sc*2, shY+sc*11, sc*12, sc*10);
+  // Belt
+  ctx.fillStyle = '#5a3e18'; ctx.fillRect(bx-bwH-sc*4, hipY-sc*13, bwH*2+sc*8, sc*11);
+  ctx.fillStyle = '#c8a040'; ctx.fillRect(bx-sc*7, hipY-sc*12, sc*14, sc*9);
+  ctx.restore();
+
+  // ---- FRONT LEG ----
+  if (rLeg >= 0) {
+    ctx.save(); ctx.translate(bx+sc*16, hipY); ctx.rotate(rLeg);
+    _dollLeg(ctx, sc, false, SKIN, UNIF_D, BOOT, legWounded, layers, slip,
+             legWounded && layers===0);
+    ctx.restore();
+  } else {
+    ctx.save(); ctx.translate(bx-sc*16, hipY); ctx.rotate(lLeg);
+    _dollLeg(ctx, sc, true, SKIN, UNIF_D, BOOT, false, 0, 0, false);
+    ctx.restore();
+  }
+
+  // ---- NECK ----
+  ctx.save();
+  ctx.fillStyle = SKIN; ctx.strokeStyle = SKIN_D; ctx.lineWidth = sc;
+  ctx.beginPath(); ctx.ellipse(bx, (neckY+shY*0.92)/2, sc*9, sc*6, 0, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+
+  // ---- HEAD ----
+  ctx.save();
+  const hg = ctx.createRadialGradient(bx-sc*8, headCY-sc*8, sc*2, bx, headCY, headR*1.1);
+  hg.addColorStop(0, '#fdd9a2'); hg.addColorStop(0.6, SKIN); hg.addColorStop(1, SKIN_D);
+  ctx.fillStyle = hg; ctx.strokeStyle = SKIN_D; ctx.lineWidth = sc*2;
+  ctx.beginPath(); ctx.ellipse(bx, headCY+sc*4, headR, headR*1.05, 0, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+
+  // Head bandage
+  if (bodyPart === 'head' && layers > 0) {
+    const slipPx = slip * sc*32;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < Math.min(layers, 4); i++) {
+      ctx.lineWidth = sc*11;
+      ctx.strokeStyle = `rgba(240,226,181,${Math.max(0.35, 1-i*0.08)})`;
+      ctx.beginPath();
+      ctx.ellipse(bx, headCY-sc*4+i*sc*3+slipPx, headR+sc*4, headR*0.58, 0, 0, Math.PI*2);
+      ctx.stroke();
+    }
+  }
+
+  // Helmet
+  ctx.fillStyle = HELM; ctx.strokeStyle = '#2a3a14'; ctx.lineWidth = sc*2;
+  ctx.beginPath(); ctx.ellipse(bx, headCY-sc*3, headR+sc*6, headR*0.60, 0, Math.PI, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(bx, headCY-sc*3, headR+sc*10, sc*6, 0, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  // Helmet strap
+  ctx.strokeStyle = '#2a3a14'; ctx.lineWidth = sc*2.5;
+  ctx.beginPath(); ctx.arc(bx, headCY+sc*12, headR+sc*2, 0.1, Math.PI-0.1); ctx.stroke();
+
+  // Eyes
+  const eyeY = headCY+sc*2, eLX = bx-sc*10, eRX = bx+sc*10;
+  ctx.lineWidth = sc*2.5; ctx.lineCap = 'round';
+  if (state === 'tight' && ph > 15) {
+    // Pain X eyes
+    ctx.strokeStyle = '#2a1a0a';
+    [eLX, eRX].forEach(ex => {
+      ctx.beginPath(); ctx.moveTo(ex-sc*5,eyeY-sc*4); ctx.lineTo(ex+sc*5,eyeY+sc*4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ex+sc*5,eyeY-sc*4); ctx.lineTo(ex-sc*5,eyeY+sc*4); ctx.stroke();
+    });
+  } else if (state === 'perfect') {
+    // Happy ^ ^ eyes
+    ctx.strokeStyle = '#2a1a0a';
+    ctx.beginPath(); ctx.arc(eLX, eyeY+sc*3, sc*6, Math.PI*1.1, Math.PI*1.9); ctx.stroke();
+    ctx.beginPath(); ctx.arc(eRX, eyeY+sc*3, sc*6, Math.PI*1.1, Math.PI*1.9); ctx.stroke();
+  } else {
+    ctx.fillStyle = '#2a1a0a';
+    ctx.beginPath(); ctx.ellipse(eLX, eyeY, sc*4.5, sc*5, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(eRX, eyeY, sc*4.5, sc*5, 0, 0, Math.PI*2); ctx.fill();
+    // Sad brows
+    ctx.strokeStyle = '#2a1a0a';
+    ctx.beginPath(); ctx.moveTo(eLX-sc*6,eyeY-sc*8); ctx.lineTo(eLX+sc*6,eyeY-sc*5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(eRX-sc*6,eyeY-sc*5); ctx.lineTo(eRX+sc*6,eyeY-sc*8); ctx.stroke();
+  }
+
+  // Mouth
+  const mY = headCY+sc*14;
+  ctx.strokeStyle = '#2a1a0a'; ctx.lineWidth = sc*2.5; ctx.lineCap = 'round';
+  if (state === 'tight' && ph > 15) {
+    ctx.beginPath();
+    ctx.moveTo(bx-sc*10,mY); ctx.lineTo(bx-sc*5,mY+sc*4);
+    ctx.lineTo(bx,mY-sc*3); ctx.lineTo(bx+sc*5,mY+sc*4); ctx.lineTo(bx+sc*10,mY);
+    ctx.stroke();
+  } else if (state === 'perfect') {
+    ctx.beginPath(); ctx.arc(bx, mY-sc*4, sc*12, 0.1, Math.PI-0.1); ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(bx, mY-sc*4, sc*11, 0.12, Math.PI-0.12); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.arc(bx, mY+sc*8, sc*9, Math.PI+0.3, -0.3); ctx.stroke();
+  }
+
+  // Cheeks — red if too tight
+  if (state === 'tight' && ph > 10) {
+    const rr = Math.min((ph-10)/15, 1) * 0.40;
+    ctx.fillStyle = `rgba(255,80,80,${rr})`;
+    ctx.beginPath(); ctx.ellipse(bx-sc*18, headCY+sc*9, sc*10, sc*7, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(bx+sc*18, headCY+sc*9, sc*10, sc*7, 0, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Sweat drops
+  if ((state === 'loose' && ph > 32) || (state === 'tight' && ph > 18)) {
+    ctx.fillStyle = 'rgba(120,190,255,0.90)';
+    ctx.beginPath(); ctx.ellipse(bx+headR+sc*2,  headCY-sc*12, sc*4,sc*7, -0.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(bx+headR+sc*8,  headCY,       sc*3,sc*5,  0.2, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+
+  // ---- FRONT ARM ----
+  if (!rArmBack) {
+    ctx.save(); ctx.translate(bx+bw, shY); ctx.rotate(rArm*0.5);
+    _dollArm(ctx, sc, false, SKIN, SKIN_D, UNIF, UNIF_D,
+             bodyPart==='arm'||bodyPart==='finger', bodyPart, layers, slip, state);
+    ctx.restore();
+  } else {
+    ctx.save(); ctx.translate(bx-bw, shY); ctx.rotate(lArm*0.5);
+    _dollArm(ctx, sc, true, SKIN, SKIN_D, UNIF, UNIF_D, false, bodyPart, 0, 0, state);
+    ctx.restore();
+  }
+
+  // Red pain flash (tight)
+  if (state === 'tight' && ph > 15 && ph < 32) {
+    const fa = ((32-ph)/17)*0.30;
+    ctx.save(); ctx.fillStyle = `rgba(255,50,50,${fa})`;
+    ctx.beginPath(); ctx.ellipse(bx, headCY, headR+sc*4, headR*1.1, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // Stars/pain sparks (tight, after flash)
+  if (state === 'tight' && ph > 28) {
+    const starCount = 4;
+    ctx.fillStyle = '#fbbf24'; ctx.strokeStyle = '#b45309'; ctx.lineWidth = sc;
+    for (let i = 0; i < starCount; i++) {
+      const ang = (i/starCount)*Math.PI*2 + ph*0.08;
+      const sx = bx + Math.cos(ang) * (headR + sc*18);
+      const sy = headCY + Math.sin(ang) * (headR + sc*18);
+      const r = sc * 6;
+      ctx.beginPath();
+      for (let p = 0; p < 5; p++) {
+        const a = p*(Math.PI*2/5) - Math.PI/2;
+        const b = a + Math.PI/5;
+        p===0 ? ctx.moveTo(sx+Math.cos(a)*r, sy+Math.sin(a)*r)
+              : ctx.lineTo(sx+Math.cos(a)*r, sy+Math.sin(a)*r);
+        ctx.lineTo(sx+Math.cos(b)*r*0.4, sy+Math.sin(b)*r*0.4);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+  }
+
+  // Falling bandage strips (loose)
+  if (state === 'loose' && slip > 0.15) {
+    ctx.save();
+    const strips = Math.min(layers, 4);
+    for (let i = 0; i < strips; i++) {
+      const fallY = by - sc*65 + slip * sc*90 + i*sc*14;
+      const xOff  = Math.sin(ph*0.18 + i) * sc*10;
+      const alpha = Math.max(0, 1 - (slip-0.15)/0.85 * (i*0.25+0.5));
+      ctx.fillStyle = `rgba(240,226,181,${alpha})`;
+      ctx.save();
+      ctx.translate(bx+sc*20+xOff, fallY);
+      ctx.rotate(ph*0.06 + i*0.8);
+      ctx.fillRect(-sc*12, -sc*3, sc*24, sc*6);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+}
+
+// ------------------------------------------
 // YARD 4: WRAP RACE
 // ------------------------------------------
 function drawDollScene(ctx, canvas) {
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
 
-  // Battlefield backdrop
-  drawBattlefield(ctx, canvas);
+  const state = DollWrap.animState || 'idle';
+  const ph    = DollWrap.animFrame;
+  const slip  = DollWrap.bandageSlip || 0;
 
-  let cx = DollWrap.centerX;
-  let cy = DollWrap.centerY;
-  let rad = DollWrap.radius;
+  // ── Sky / ground background ───────────────────────────────────────────
+  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.64);
+  sky.addColorStop(0, '#9acfea'); sky.addColorStop(1, '#d4eef8');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H * 0.64);
 
-  // Animation offsets
-  if (DollWrap.testAction) {
-    const cycle = Math.sin(DollWrap.testTimer * 0.4);
-    if (DollWrap.testAction === 'walk') {
-      cx += cycle * 12;
-    } else if (DollWrap.testAction === 'bend') {
-      cy += cycle * 10;
-      rad += cycle * 3;
-    } else if (DollWrap.testAction === 'turn') {
-      cy += cycle * 5;
-    }
+  const gnd = ctx.createLinearGradient(0, H * 0.62, 0, H);
+  gnd.addColorStop(0, '#8ec940'); gnd.addColorStop(0.55, '#5da020'); gnd.addColorStop(1, '#3a7a10');
+  ctx.fillStyle = gnd; ctx.fillRect(0, H * 0.62, W, H * 0.38);
+  ctx.fillStyle = '#aad84a'; ctx.fillRect(0, H * 0.62, W, 3);
+
+  _dollCloud(ctx, W*0.14, H*0.12, W*0.10, H*0.07, 0.6);
+  _dollCloud(ctx, W*0.68, H*0.08, W*0.13, H*0.08, 0.7);
+  _dollCloud(ctx, W*0.85, H*0.20, W*0.08, H*0.06, 0.5);
+
+  // ── Soldier position ────────────────────────────────────────────────
+  const sc = H / 380;
+  const groundY = H * 0.86;
+  let sX = W * 0.46;
+
+  // Perfect: soldier runs from center toward right edge
+  if (state === 'perfect') {
+    const prog = Math.min(ph / 155, 1);
+    sX = W * (0.28 + prog * 0.46);
+  }
+  // Tight: subtle wobble
+  if (state === 'tight') {
+    sX = W * 0.46 + Math.sin(ph * 0.35) * sc * 7 * Math.min(ph/20, 1);
   }
 
-  // Slippage offset
-  let slipOffset = 0;
-  if (DollWrap.testAction && DollWrap.tightness < 3) {
-    slipOffset = (25 - DollWrap.testTimer) * 1.6;
-  }
+  _drawSoldierMain(ctx, sX, groundY, sc, state, ph, DollWrap.bodyPart, DollWrap.layers, slip);
 
-  // Knee / joint cross-section — skin cylinder
-  const ks = ctx.createRadialGradient(cx - rad * 0.3, cy - rad * 0.3, rad * 0.1, cx, cy, rad * 1.1);
-  ks.addColorStop(0, '#f8d8b0');
-  ks.addColorStop(0.55, '#d88040');
-  ks.addColorStop(1, '#8a3a10');
-  ctx.fillStyle = ks; ctx.strokeStyle = '#7c3010'; ctx.lineWidth = 3.5;
-  ctx.beginPath(); ctx.arc(cx, cy, rad, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
-
-  // Knee cap highlight
-  const hl = ctx.createRadialGradient(cx - rad * 0.22, cy - rad * 0.2, 2, cx - rad * 0.22, cy - rad * 0.2, rad * 0.55);
-  hl.addColorStop(0, 'rgba(255,255,255,0.35)'); hl.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = hl; ctx.beginPath(); ctx.arc(cx, cy, rad, 0, 2 * Math.PI); ctx.fill();
-
-  // Joint crease lines
-  ctx.strokeStyle = 'rgba(100,40,10,0.18)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(cx - rad, cy); ctx.lineTo(cx + rad, cy); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx, cy - rad); ctx.lineTo(cx, cy + rad); ctx.stroke();
-
-  // Label
-  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = 'bold 9px Cinzel'; ctx.textAlign = 'center';
-  ctx.fillText('SOLDIER KNEE JOINT', cx, cy + rad + 16);
-
-  // Wound marker on kneecap (injury that needs bandaging)
-  ctx.fillStyle = 'rgba(160,30,20,0.75)';
-  ctx.beginPath(); ctx.ellipse(cx + rad * 0.25, cy - rad * 0.15, 7, 4, 0.4, 0, 2 * Math.PI); ctx.fill();
-
-  // Bandage rings (linen color, slightly translucent)
-  ctx.lineCap = 'round';
-  for (let i = 1; i <= DollWrap.layers; i++) {
-    const alpha = Math.max(0.35, 1 - i * 0.07);
-    ctx.lineWidth = 7;
-    ctx.strokeStyle = `rgba(240,220,170,${alpha})`;
-    ctx.beginPath();
-    ctx.arc(cx + slipOffset, cy + slipOffset * 0.5, rad + i * 5.5, 0, 2 * Math.PI);
-    ctx.stroke();
-    // linen texture stripe
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = `rgba(200,175,120,${alpha * 0.5})`;
-    ctx.beginPath();
-    ctx.arc(cx + slipOffset, cy + slipOffset * 0.5, rad + i * 5.5, -0.5, Math.PI + 0.5);
-    ctx.stroke();
-  }
-
-  // Squeeze arrows when too tight
-  if (DollWrap.tightness > 7 && DollWrap.layers > 0) {
-    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2;
-    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
-      const sx = cx + (rad + DollWrap.layers * 5.5 + 14) * Math.cos(angle);
-      const sy = cy + (rad + DollWrap.layers * 5.5 + 14) * Math.sin(angle);
-      const tx = cx + (rad + DollWrap.layers * 5.5 + 3) * Math.cos(angle);
-      const ty = cy + (rad + DollWrap.layers * 5.5 + 3) * Math.sin(angle);
-      drawArrow(ctx, sx, sy, tx, ty);
-    }
-  }
-
-  // Drag trail (gauze path)
-  if (DollWrap.history.length > 1) {
-    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(240,220,170,0.45)';
+  // ── Wrap drag trail ───────────────────────────────────────────────
+  if (DollWrap.isDrawing && DollWrap.history.length > 1) {
+    ctx.save();
+    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(240,220,170,0.55)';
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.moveTo(DollWrap.history[0].x, DollWrap.history[0].y);
     for (let i = 1; i < DollWrap.history.length; i++) ctx.lineTo(DollWrap.history[i].x, DollWrap.history[i].y);
     ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Instruction label (idle, no wraps yet) ───────────────────────
+  if (state === 'idle' && DollWrap.layers === 0) {
+    const nm = {leg:'lower leg', arm:'forearm', finger:'finger', head:'head'};
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.42)'; ctx.font = `bold ${Math.round(12*sc)}px Outfit`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(`↕ Drag around the ${nm[DollWrap.bodyPart]||'wound'} to wrap`, W/2, 8);
+    ctx.restore();
+  }
+
+  // ── Speech bubbles ───────────────────────────────────────────────
+  if (state === 'tight' && ph > 18) {
+    _dollSpeech(ctx, sX + sc*50, groundY - sc*200, 'OW! Too tight!!', '#ef4444', sc);
+  }
+  if (state === 'loose' && ph > 38) {
+    _dollSpeech(ctx, sX + sc*52, groundY - sc*195, 'It fell off...!', '#f97316', sc);
+  }
+  if (state === 'perfect' && ph > 16) {
+    _dollSpeech(ctx, sX + sc*48, groundY - sc*200, 'Thank you!', '#10b981', sc);
+  }
+
+  // ── Success banner (end of run) ──────────────────────────────────
+  if (state === 'perfect' && ph > 148) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(16,185,129,0.18)'; ctx.fillRect(0,0,W,H);
+    ctx.shadowColor = '#10b981'; ctx.shadowBlur = 20;
+    ctx.fillStyle = '#10b981';
+    if (ctx.roundRect) ctx.roundRect(W*0.14, H*0.08, W*0.72, H*0.18, 10);
+    else ctx.rect(W*0.14, H*0.08, W*0.72, H*0.18);
+    ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.round(18*sc)}px Outfit`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('✓ HEALED — Perfect wrap!', W/2, H*0.08 + H*0.09);
+    ctx.restore();
+  }
+
+  // ── Fail banner (tight/loose, end of animation) ──────────────────
+  if ((state === 'tight' || state === 'loose') && ph > 95) {
+    const msg = state === 'tight' ? '✗ Too tight — loosen it!' : '✗ Too loose — tighten up!';
+    ctx.save();
+    ctx.fillStyle = 'rgba(239,68,68,0.15)'; ctx.fillRect(0,0,W,H);
+    ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 16;
+    ctx.fillStyle = '#ef4444';
+    if (ctx.roundRect) ctx.roundRect(W*0.14, H*0.08, W*0.72, H*0.18, 10);
+    else ctx.rect(W*0.14, H*0.08, W*0.72, H*0.18);
+    ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.round(16*sc)}px Outfit`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(msg, W/2, H*0.08 + H*0.09);
+    ctx.restore();
   }
 }
 

@@ -951,23 +951,55 @@ function selectWireShape(idx) {
 // YARD 4: WRAP RACE
 // ------------------------------------------
 const DollWrap = {
-  bodyPart: 'finger',
+  bodyPart: 'leg',
   layers: 0,
   tightness: 5,
   isDrawing: false,
   angleProgress: 0,
   lastAngle: null,
-  centerX: 250, centerY: 150,
+  centerX: 250, centerY: 270,
   radius: 20,
   history: [],
-  testAction: null, // 'walk', 'bend', 'turn'
-  testTimer: 0
+  testAction: null,
+  testTimer: 0,
+  // animation state
+  animState: 'idle',   // 'idle' | 'tight' | 'loose' | 'perfect'
+  animFrame: 0,
+  bandageSlip: 0       // 0→1 for loose animation
 };
+
+function _setDollWrapTarget(canvas) {
+  const W = canvas.width  || canvas.clientWidth  || 600;
+  const H = canvas.height || canvas.clientHeight || 360;
+  const sc = H / 380;
+  const bx = W * 0.46;
+  const groundY = H * 0.86;
+  const p = DollWrap.bodyPart;
+  if (p === 'leg') {
+    DollWrap.centerX = bx + sc*18;
+    DollWrap.centerY = groundY - sc*58;
+    DollWrap.radius  = sc*20;
+  } else if (p === 'arm') {
+    DollWrap.centerX = bx + sc*56;
+    DollWrap.centerY = groundY - sc*118;
+    DollWrap.radius  = sc*14;
+  } else if (p === 'finger') {
+    DollWrap.centerX = bx + sc*66;
+    DollWrap.centerY = groundY - sc*94;
+    DollWrap.radius  = sc*10;
+  } else {  // head
+    DollWrap.centerX = bx;
+    DollWrap.centerY = groundY - sc*190;
+    DollWrap.radius  = sc*34;
+  }
+}
 
 function initDollStation() {
   const canvas = document.getElementById('canvas-doll');
   const ctx = canvas.getContext('2d');
-  
+  canvas.width  = canvas.clientWidth  || 600;
+  canvas.height = canvas.clientHeight || 360;
+
   DollWrap.layers = 0;
   DollWrap.angleProgress = 0;
   DollWrap.lastAngle = null;
@@ -975,8 +1007,15 @@ function initDollStation() {
   DollWrap.history = [];
   DollWrap.testAction = null;
   DollWrap.testTimer = 0;
+  DollWrap.animState = 'idle';
+  DollWrap.animFrame = 0;
+  DollWrap.bandageSlip = 0;
+
+  _setDollWrapTarget(canvas);
 
   document.getElementById('doll-layers').textContent = 0;
+  document.getElementById('doll-compression-status').textContent = '—';
+  document.getElementById('doll-compression-status').style.color = '';
   updateDollCalculations();
   drawDollScene(ctx, canvas);
 
@@ -1029,15 +1068,10 @@ function initDollStation() {
 function selectDollBody(part) {
   Sound.click();
   DollWrap.bodyPart = part;
-  ['finger', 'arm', 'knee', 'head'].forEach(id => {
-    document.getElementById(`btn-doll-${id}`).classList.toggle('active', id === part);
+  ['leg', 'arm', 'finger', 'head'].forEach(id => {
+    const el = document.getElementById(`btn-doll-${id}`);
+    if (el) el.classList.toggle('active', id === part);
   });
-
-  if (part === 'finger') { DollWrap.radius = 20; DollWrap.centerY = 150; }
-  else if (part === 'arm') { DollWrap.radius = 35; DollWrap.centerY = 150; }
-  else if (part === 'knee') { DollWrap.radius = 50; DollWrap.centerY = 160; }
-  else if (part === 'head') { DollWrap.radius = 65; DollWrap.centerY = 170; }
-
   resetDollStation();
 }
 
@@ -1049,59 +1083,82 @@ function updateDollCalculations() {
   DollWrap.tightness = parseInt(document.getElementById('doll-tightness').value);
   document.getElementById('doll-tightness-val').textContent = DollWrap.tightness;
 
-  let status = "Unwrapped";
-  if (DollWrap.layers > 0) {
-    if (DollWrap.tightness > 7) {
-      status = "Pinch! (Too tight, restricts joint)";
-    } else if (DollWrap.tightness < 3) {
-      status = "Loose! (Bandage slips off)";
-    } else {
-      status = "Secure wrap holds joint stably.";
-    }
+  // Don't spoil the result — keep status hidden until animation plays
+  if (DollWrap.animState === 'idle') {
+    const el = document.getElementById('doll-compression-status');
+    el.textContent = DollWrap.layers > 0 ? 'Press Walk / Run / Jump to test!' : '—';
+    el.style.color = '';
   }
 
-  const el = document.getElementById('doll-compression-status');
-  el.textContent = status;
-  if (status.includes("Pinch")) el.style.color = "var(--color-rose)";
-  else if (status.includes("Loose")) el.style.color = "var(--color-orange)";
-  else el.style.color = "var(--color-teal)";
-
-  // §1c: redraw canvas immediately so visual updates with slider
   const canvas = document.getElementById('canvas-doll');
   if (canvas) drawDollScene(canvas.getContext('2d'), canvas);
 }
 
 function testDollMovement(action) {
   if (DollWrap.layers === 0) {
-    alert("Apply wraps first to test movement!");
+    document.getElementById('doll-mentor-tip').textContent = 'Wrap the wound first — then test!';
     return;
   }
+  if (DollWrap.animState !== 'idle') return;  // already animating
   Sound.click();
   DollWrap.testAction = action;
-  DollWrap.testTimer = 25; // animation cycles
-
-  // Update mentor note
-  if (DollWrap.tightness > 7) {
-    document.getElementById('doll-mentor-tip').textContent = "Pinch! High tension constricts the limb.";
-    Sound.bump();
-  } else if (DollWrap.tightness < 3) {
-    document.getElementById('doll-mentor-tip').textContent = "Slip! Bandages unravel under movement.";
-    Sound.bump();
-  } else {
-    document.getElementById('doll-mentor-tip').textContent = "Secure wrap supports natural articulation!";
-    Sound.success();
-  }
-
+  DollWrap.animFrame  = 0;
+  DollWrap.bandageSlip = 0;
+  document.getElementById('doll-mentor-tip').textContent = 'Testing…';
+  document.getElementById('doll-compression-status').textContent = '…';
   animateDollMovement();
 }
 
 function animateDollMovement() {
-  if (DollWrap.testTimer > 0) {
-    DollWrap.testTimer--;
-    const canvas = document.getElementById('canvas-doll');
-    drawDollScene(canvas.getContext('2d'), canvas);
+  DollWrap.animFrame++;
+  const ph = DollWrap.animFrame;
+  const t  = DollWrap.tightness;
+
+  // Decide outcome state after a short lead-in (10 frames)
+  if (ph === 10) {
+    if (t > 7)      DollWrap.animState = 'tight';
+    else if (t < 3) DollWrap.animState = 'loose';
+    else            DollWrap.animState = 'perfect';
+  }
+
+  // Reveal mentor tip and status at the right moments
+  if (ph === 18) {
+    const st = DollWrap.animState;
+    const el = document.getElementById('doll-compression-status');
+    if (st === 'tight') {
+      document.getElementById('doll-mentor-tip').textContent =
+        'Pinch! High tension constricts the limb — loosen the wrap.';
+      el.textContent = 'Too tight!'; el.style.color = 'var(--color-rose)';
+      Sound.bump();
+    } else if (st === 'loose') {
+      document.getElementById('doll-mentor-tip').textContent =
+        'Slip! Bandage unravels under movement — increase tension.';
+      el.textContent = 'Too loose!'; el.style.color = 'var(--color-orange)';
+      Sound.bump();
+    } else {
+      document.getElementById('doll-mentor-tip').textContent =
+        'Perfect! The wrap holds through full movement. Well done!';
+      el.textContent = 'Secure wrap!'; el.style.color = 'var(--color-teal)';
+      Sound.success();
+    }
+  }
+
+  // Advance bandage slip for 'loose' state
+  if (DollWrap.animState === 'loose' && ph > 12) {
+    DollWrap.bandageSlip = Math.min(1, (ph - 12) / 40);
+  }
+
+  const canvas = document.getElementById('canvas-doll');
+  drawDollScene(canvas.getContext('2d'), canvas);
+
+  // Keep animating: perfect for ~5 s (160 frames), tight/loose for ~3.5 s (105 frames)
+  const maxFrame = DollWrap.animState === 'perfect' ? 162 : 108;
+  if (ph < maxFrame) {
     requestAnimationFrame(animateDollMovement);
   } else {
+    DollWrap.animState = 'idle';
+    DollWrap.animFrame = 0;
+    DollWrap.bandageSlip = 0;
     DollWrap.testAction = null;
   }
 }

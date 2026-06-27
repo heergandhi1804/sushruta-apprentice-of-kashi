@@ -356,22 +356,22 @@
         <aside class="right-panel">
           <div class="cartoon-card variable-selection-card" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
-              <div class="goal-line">🎯 Goal: Find the tightness that secures the joint — test Walk, Bend, and Turn to see what holds.</div>
-              <h3 class="panel-section-title font-cinzel">WRAPPING TARGET</h3>
+              <div class="goal-line">🎯 Goal: Wrap the soldier's wound and find the right tightness — then test Walk, Run, or Jump to see the result!</div>
+              <h3 class="panel-section-title font-cinzel">INJURED SOLDIER</h3>
               
               <div class="variable-group">
-                <span class="lbl-small">Select Joint</span>
+                <span class="lbl-small">Injury Site</span>
                 <div class="selection-pill-grid" style="grid-template-columns: repeat(2, 1fr);">
-                  <button onclick="selectDollBody('finger')" id="btn-doll-finger" class="selection-pill active">Finger</button>
-                  <button onclick="selectDollBody('arm')" id="btn-doll-arm" class="selection-pill">Arm</button>
-                  <button onclick="selectDollBody('knee')" id="btn-doll-knee" class="selection-pill">Knee</button>
-                  <button onclick="selectDollBody('head')" id="btn-doll-head" class="selection-pill">Head</button>
+                  <button onclick="selectDollBody('leg')"    id="btn-doll-leg"    class="selection-pill active">Leg</button>
+                  <button onclick="selectDollBody('arm')"    id="btn-doll-arm"    class="selection-pill">Arm</button>
+                  <button onclick="selectDollBody('finger')" id="btn-doll-finger" class="selection-pill">Finger</button>
+                  <button onclick="selectDollBody('head')"   id="btn-doll-head"   class="selection-pill">Head</button>
                 </div>
               </div>
 
               <div class="slider-group">
                 <div class="slider-label-row">
-                  <span class="lbl-small">Tightness</span>
+                  <span class="lbl-small">Wrap Tightness</span>
                   <span id="doll-tightness-val" style="color: var(--color-pink); font-weight: 800;">5</span>
                 </div>
                 <input type="range" id="doll-tightness" min="1" max="10" value="5" oninput="updateDollCalculations()">
@@ -379,18 +379,18 @@
 
               <!-- Movement Action triggers -->
               <div class="variable-group" style="margin-top: 12px;">
-                <span class="lbl-small">Active Movement Test</span>
+                <span class="lbl-small">Test the wrap</span>
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 4px;">
                   <button onclick="testDollMovement('walk')" class="selection-pill" style="padding: 6px 0;">Walk</button>
-                  <button onclick="testDollMovement('bend')" class="selection-pill" style="padding: 6px 0;">Bend</button>
-                  <button onclick="testDollMovement('turn')" class="selection-pill" style="padding: 6px 0;">Turn</button>
+                  <button onclick="testDollMovement('run')"  class="selection-pill" style="padding: 6px 0;">Run</button>
+                  <button onclick="testDollMovement('jump')" class="selection-pill" style="padding: 6px 0;">Jump</button>
                 </div>
               </div>
 
               <div class="live-feed-card" style="margin-top: 10px;">
                 <h5>Wrap Output</h5>
-                <div>Layers: <span id="doll-layers">0</span></div>
-                <div style="font-weight: 800; margin-top: 2px;">Status: <span id="doll-compression-status">Unwrapped</span></div>
+                <div>Layers applied: <span id="doll-layers">0</span></div>
+                <div style="font-weight: 800; margin-top: 2px;">Result: <span id="doll-compression-status">—</span></div>
               </div>
 
               <!-- Mentor Quote -->
